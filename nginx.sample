@@ -11,7 +11,7 @@ upstream future_xclusive_frontend {
 
 server {
     listen 80;
-    server_name _;
+    server_name fxlfm.com www.fxlfm.com localhost;
 
     location = /health {
         access_log off;
