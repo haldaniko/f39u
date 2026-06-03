@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 m-0 font-body;
+  background-image: radial-gradient(circle at 5% 5%, rgba(0,127,122,0.15), transparent 30%), radial-gradient(circle at 90% 0%, rgba(255,107,53,0.16), transparent 35%);
+  min-height: 100vh;
+}
+
+.dark body {
+  @apply bg-slate-950 text-slate-100;
+  background-image: radial-gradient(circle at 15% 10%, rgba(0,127,122,0.3), transparent 35%), radial-gradient(circle at 90% 0%, rgba(255,107,53,0.26), transparent 40%);
+}
+
+.news-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.2rem;
+}
+
+.glass {
+  @apply backdrop-blur-sm bg-white/80 dark:bg-slate-900/70 border border-white/40 dark:border-slate-700/60;
+}

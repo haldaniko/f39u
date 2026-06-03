@@ -1,0 +1,22 @@
+:root {
+  --primary: #0c2f30;
+  --secondary: #007f7a;
+  --accent: #ff6b35;
+}
+
+#header {
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+}
+
+#site-name a {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.module h2, .module caption, .inline-group h2 {
+  background: var(--secondary);
+}
+
+.button, input[type=submit], input[type=button], .submit-row input, a.button {
+  background: var(--accent);
+}
