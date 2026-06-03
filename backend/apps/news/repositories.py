@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from hashlib import sha1
 
 from django.db.models import QuerySet
-from django.utils import timezone
 from django.utils.text import slugify
 
 from .models import Article, Category, Source, Tag
@@ -95,11 +94,11 @@ class ArticleRepository:
                 "source_name": payload.source_name,
                 "image_url": payload.image_url,
                 "category": category,
-                "status": Article.Status.PUBLISHED,
-                "published_at": timezone.now(),
+                "status": Article.Status.DRAFT,
             },
         )
         updated_fields: list[str] = []
+        content_was_updated = False
         if not created:
             if ArticleRepository._should_replace_image(article.image_url, payload.image_url):
                 article.image_url = payload.image_url
@@ -108,16 +107,23 @@ class ArticleRepository:
                 previous_original_content = article.original_content
                 article.original_content = payload.content
                 updated_fields.append("original_content")
+                content_was_updated = True
                 if article.rewritten_content == previous_original_content:
                     article.rewritten_content = payload.content
                     updated_fields.append("rewritten_content")
+                if article.original_title != payload.title:
+                    article.original_title = payload.title
+                    updated_fields.append("original_title")
             if summary and (not article.summary or len(summary) > len(article.summary) + 40):
                 article.summary = summary
                 article.seo_description = summary[:320]
                 updated_fields.extend(["summary", "seo_description"])
-            if article.status != Article.Status.PUBLISHED:
-                article.status = Article.Status.PUBLISHED
+            if content_was_updated and article.status != Article.Status.DRAFT:
+                article.status = Article.Status.DRAFT
                 updated_fields.append("status")
+                if article.published_at is not None:
+                    article.published_at = None
+                    updated_fields.append("published_at")
             if updated_fields:
                 article.save(update_fields=updated_fields + ["updated_at"])
 

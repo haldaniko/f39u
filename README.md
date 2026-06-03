@@ -1,4 +1,4 @@
-# AI-Powered News Portal (Facts 39 Unlimited)
+# AI-Powered News Portal (Future Xclusive Local and Foreign Media)
 
 Production-oriented full-stack news portal with automated aggregation, AI rewriting, moderation workflow, analytics, and a premium React frontend.
 

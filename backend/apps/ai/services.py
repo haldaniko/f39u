@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from apps.news.models import Article, Tag
+from django.utils import timezone
 from django.utils.text import slugify
 
 from .providers import get_ai_rewriter
@@ -18,16 +19,21 @@ class RewriteService:
             article.summary = str(result["summary"])
             article.seo_description = str(result["seo_description"])
             article.title = article.rewritten_title
-            article.status = Article.Status.PENDING_REVIEW
-            article.save(update_fields=[
+            article.status = Article.Status.PUBLISHED
+            if not article.published_at:
+                article.published_at = timezone.now()
+
+            update_fields = [
                 "rewritten_title",
                 "rewritten_content",
                 "summary",
                 "seo_description",
                 "title",
                 "status",
+                "published_at",
                 "updated_at",
-            ])
+            ]
+            article.save(update_fields=update_fields)
             for tag_name in result.get("tags", []):
                 normalized_name = str(tag_name).strip()[:80]
                 if not normalized_name:

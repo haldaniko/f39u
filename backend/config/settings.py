@@ -120,7 +120,7 @@ REST_FRAMEWORK = {
 }
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "AI News Portal API",
+    "TITLE": "Future Xclusive Local and Foreign Media API",
     "DESCRIPTION": "API for automated AI-powered news aggregation and publishing.",
     "VERSION": "1.0.0",
 }

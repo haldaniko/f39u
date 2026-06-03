@@ -6,7 +6,7 @@ from apps.news.services import NewsIngestionService
 
 
 class Command(BaseCommand):
-    help = "Fetch latest news from external providers and save them as published articles."
+    help = "Fetch latest news from external providers and save them as draft articles for AI rewrite."
 
     def handle(self, *args, **options):
         stats = NewsIngestionService().fetch_and_store()

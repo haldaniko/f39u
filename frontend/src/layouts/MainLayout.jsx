@@ -35,8 +35,8 @@ export default function MainLayout({ children }) {
       <main className="mx-auto max-w-7xl px-4 py-8">{children}</main>
       <footer className="border-t border-slate-200 dark:border-slate-800 mt-12">
         <div className="mx-auto max-w-7xl px-4 py-8 text-sm text-slate-600 dark:text-slate-300">
-          <p className="font-ui">Facts 39 Unlimited • Independent global news desk.</p>
-          <p className="mt-1">© {new Date().getFullYear()} Facts 39 Unlimited</p>
+          <p className="font-ui">Future Xclusive Local and Foreign Media • Independent global news desk.</p>
+          <p className="mt-1">© {new Date().getFullYear()} Future Xclusive Local and Foreign Media</p>
           <Link to="/about" className="text-brand-700 dark:text-brand-300">Learn more</Link>
         </div>
       </footer>

@@ -25,7 +25,7 @@ export default function Logo() {
         />
       </svg>
       <div>
-        <p className="font-display tracking-tight text-2xl leading-none">Facts 39 Unlimited</p>
+        <p className="font-display tracking-tight text-2xl leading-none">Future Xclusive Local and Foreign Media</p>
         <p className="font-ui uppercase text-xs tracking-[0.25em] text-slate-500 dark:text-slate-400">Independent News Desk</p>
       </div>
     </Link>

@@ -9,6 +9,11 @@ from typing import Any
 import feedparser
 import requests
 
+try:
+    import trafilatura
+except ImportError:  # pragma: no cover
+    trafilatura = None
+
 from .repositories import ArticleRepository, NormalizedArticle
 
 
@@ -21,10 +26,20 @@ class NewsProvider(ABC):
     def normalize_data(self, raw_article: dict[str, Any]) -> NormalizedArticle:
         raise NotImplementedError
 
+    @staticmethod
+    def _has_required_image(normalized: NormalizedArticle) -> bool:
+        image_url = (normalized.image_url or "").strip()
+        if not image_url:
+            return False
+        # Accept absolute HTTP(S) and protocol-relative image URLs only.
+        return image_url.startswith("http://") or image_url.startswith("https://") or image_url.startswith("//")
+
     def save_articles(self, raw_articles: list[dict[str, Any]]) -> int:
         changed = 0
         for item in raw_articles:
             normalized = self.normalize_data(item)
+            if not self._has_required_image(normalized):
+                continue
             _, was_changed = ArticleRepository.upsert_original(normalized)
             if was_changed:
                 changed += 1
@@ -113,6 +128,15 @@ class RSSProvider(NewsProvider):
         "https://techcrunch.com/feed/",
         "https://www.theverge.com/rss/index.xml",
     ]
+    teaser_patterns = [
+        r"\bread the full story\b.*$",
+        r"\bread more\b.*$",
+        r"\bcontinue reading\b.*$",
+        r"\bfull article\b.*$",
+        r"\bclick here\b.*$",
+        r"\bvisit (the )?original\b.*$",
+        r"\boriginally published at\b.*$",
+    ]
 
     def _get_feed_urls(self) -> list[str]:
         configured = os.getenv("RSS_FEEDS", "").strip()
@@ -127,6 +151,24 @@ class RSSProvider(NewsProvider):
         value = re.sub(r"<[^>]+>", " ", value)
         value = html.unescape(value)
         return re.sub(r"\s+", " ", value).strip()
+
+    def _strip_teaser_phrases(self, text: str) -> str:
+        value = (text or "").strip()
+        if not value:
+            return ""
+
+        lines = [line.strip() for line in value.splitlines() if line.strip()]
+        cleaned_lines: list[str] = []
+        for line in lines:
+            normalized = line
+            for pattern in self.teaser_patterns:
+                normalized = re.sub(pattern, "", normalized, flags=re.IGNORECASE).strip(" -:\u2014")
+            if normalized:
+                cleaned_lines.append(normalized)
+
+        cleaned = "\n\n".join(cleaned_lines)
+        cleaned = re.sub(r"\n{3,}", "\n\n", cleaned).strip()
+        return cleaned
 
     def _extract_text_candidate_from_html(self, page_html: str) -> str:
         if not page_html:
@@ -154,10 +196,10 @@ class RSSProvider(NewsProvider):
             combined = "\n\n".join(str(item.get("value", "")) for item in blocks if item.get("value"))
             text = self._strip_html_tags(combined)
             if text:
-                return text
+                return self._strip_teaser_phrases(text)
 
         summary = str(entry.get("summary", ""))
-        return self._strip_html_tags(summary)
+        return self._strip_teaser_phrases(self._strip_html_tags(summary))
 
     def _fetch_full_article_text(self, url: str) -> str:
         if not url:
@@ -166,12 +208,23 @@ class RSSProvider(NewsProvider):
             resp = requests.get(
                 url,
                 timeout=20,
-                headers={"User-Agent": "Mozilla/5.0 (compatible; Facts39Bot/1.0; +https://localhost)"},
+                headers={"User-Agent": "Mozilla/5.0 (compatible; FutureXclusiveBot/1.0; +https://localhost)"},
             )
             resp.raise_for_status()
         except requests.RequestException:
             return ""
-        return self._extract_text_candidate_from_html(resp.text)
+
+        if trafilatura is not None:
+            extracted = trafilatura.extract(
+                resp.text,
+                include_comments=False,
+                include_formatting=False,
+                favor_recall=True,
+            )
+            if extracted:
+                return self._strip_teaser_phrases(extracted)
+
+        return self._strip_teaser_phrases(self._extract_text_candidate_from_html(resp.text))
 
     @staticmethod
     def _upgrade_image_url(url: str) -> str:
@@ -241,6 +294,7 @@ class RSSProvider(NewsProvider):
                     if len(full_text) > len(content):
                         content = full_text
                     fulltext_budget -= 1
+                content = self._strip_teaser_phrases(content)
                 collected.append(
                     {
                         "title": entry.get("title", "Untitled"),

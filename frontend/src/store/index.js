@@ -1,3 +1,3 @@
 export const appStore = {
-  brandName: "Facts 39 Unlimited",
+  brandName: "Future Xclusive Local and Foreign Media",
 };
