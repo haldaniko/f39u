@@ -12,7 +12,7 @@ Production-oriented full-stack news portal with automated aggregation, AI rewrit
 
 - backend/: Django API, admin panel, Celery tasks, providers, AI rewriting, analytics
 - frontend/: React news portal UI
-- infra/nginx/: Nginx reverse proxy for production
+- nginx.sample: External Nginx reverse-proxy template
 - docker-compose.yml: Development stack
 - docker-compose.prod.yml: Production stack
 - .env.example: Environment template
@@ -89,7 +89,7 @@ Production-oriented full-stack news portal with automated aggregation, AI rewrit
 1. Configure `.env` for production secrets and domains.
 2. Run:
    - `docker compose -f docker-compose.prod.yml up --build -d`
-3. Access app through Nginx at port `80`.
+3. Configure your external Nginx using `nginx.sample` and route traffic to backend/frontend.
 
 ## Local Non-Docker Setup
 
