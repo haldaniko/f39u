@@ -1,5 +1,5 @@
-import { lazy, Suspense } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { lazy, Suspense, useEffect } from "react";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import MainLayout from "./layouts/MainLayout";
 import PageSkeleton from "./components/PageSkeleton";
@@ -11,10 +11,25 @@ const SearchPage = lazy(() => import("./pages/SearchPage"));
 const AboutPage = lazy(() => import("./pages/AboutPage"));
 const ContactPage = lazy(() => import("./pages/ContactPage"));
 
+function AnalyticsTracker() {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (typeof window.gtag === "function") {
+      window.gtag("config", "G-YHNDZXLSVN", {
+        page_path: `${location.pathname}${location.search}`,
+      });
+    }
+  }, [location]);
+
+  return null;
+}
+
 export default function App() {
   return (
     <MainLayout>
       <Suspense fallback={<PageSkeleton />}>
+        <AnalyticsTracker />
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/article/:slug" element={<ArticlePage />} />
