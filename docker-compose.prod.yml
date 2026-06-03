@@ -9,6 +9,8 @@ services:
     depends_on:
       - postgres
       - redis
+    ports:
+      - "8005:8000"
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
@@ -25,6 +27,8 @@ services:
     environment:
       - VITE_API_BASE_URL=/api
     restart: always
+    ports:
+      - "5174:4173"
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:4173"]
       interval: 60s
@@ -38,6 +42,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -49,6 +55,8 @@ services:
   redis:
     image: redis:7-alpine
     restart: always
+    ports:
+      - "6380:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 30s
