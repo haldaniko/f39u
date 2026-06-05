@@ -62,7 +62,7 @@ class Article(models.Model):
     source_url = models.URLField(max_length=500, unique=True)
     published_at = models.DateTimeField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
-    image_url = models.URLField(blank=True)
+    image_url = models.URLField(max_length=500, blank=True)
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name="articles")
     tags = models.ManyToManyField(Tag, blank=True, related_name="articles")
     created_at = models.DateTimeField(auto_now_add=True)
