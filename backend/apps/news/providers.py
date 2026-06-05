@@ -127,6 +127,15 @@ class RSSProvider(NewsProvider):
         "https://feeds.bbci.co.uk/news/technology/rss.xml",
         "https://techcrunch.com/feed/",
         "https://www.theverge.com/rss/index.xml",
+        "https://www.cnbc.com/id/10001147/device/rss/rss.html",
+        "https://www.ft.com/rss/home",
+        "https://www.forbes.com/business/feed/",
+        "https://fortune.com/feed/",
+        "https://venturebeat.com/feed",
+        "https://news.crunchbase.com/feed/",
+        "https://www.epravda.com.ua/rss/",
+        "https://www.investor.bg/rss/latest",
+        "https://www.dnes.bg/rss.php?cat=2",
     ]
     teaser_patterns = [
         r"\bread the full story\b.*$",
@@ -226,6 +235,35 @@ class RSSProvider(NewsProvider):
 
         return self._strip_teaser_phrases(self._extract_text_candidate_from_html(resp.text))
 
+    def _fetch_image_from_article_page(self, url: str) -> str:
+        if not url:
+            return ""
+        try:
+            resp = requests.get(
+                url,
+                timeout=20,
+                headers={"User-Agent": "Mozilla/5.0 (compatible; FutureXclusiveBot/1.0; +https://localhost)"},
+            )
+            resp.raise_for_status()
+        except requests.RequestException:
+            return ""
+
+        html_doc = resp.text or ""
+        if not html_doc:
+            return ""
+
+        # Prefer metadata images because they are typically high quality and canonical.
+        for pattern in (
+            r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']',
+            r'<meta[^>]+name=["\']twitter:image(?::src)?["\'][^>]+content=["\']([^"\']+)["\']',
+            r'<meta[^>]+itemprop=["\']image["\'][^>]+content=["\']([^"\']+)["\']',
+        ):
+            match = re.search(pattern, html_doc, flags=re.IGNORECASE)
+            if match and match.group(1).strip():
+                return match.group(1).strip()
+
+        return self._extract_first_image_from_html(html_doc)
+
     @staticmethod
     def _upgrade_image_url(url: str) -> str:
         upgraded = (url or "").strip()
@@ -279,7 +317,8 @@ class RSSProvider(NewsProvider):
 
     def fetch_articles(self) -> list[dict[str, Any]]:
         collected: list[dict[str, Any]] = []
-        fulltext_budget = int(os.getenv("RSS_FULLTEXT_FETCH_LIMIT", "20"))
+        fulltext_budget = int(os.getenv("RSS_FULLTEXT_FETCH_LIMIT", "80"))
+        image_fetch_budget = int(os.getenv("RSS_IMAGE_FETCH_LIMIT", "40"))
         for feed_url in self._get_feed_urls():
             parsed = feedparser.parse(feed_url)
             feed_title = parsed.feed.get("title", "RSS")
@@ -295,13 +334,17 @@ class RSSProvider(NewsProvider):
                         content = full_text
                     fulltext_budget -= 1
                 content = self._strip_teaser_phrases(content)
+                image = self._extract_image(entry)
+                if not image and image_fetch_budget > 0:
+                    image = self._fetch_image_from_article_page(link)
+                    image_fetch_budget -= 1
                 collected.append(
                     {
                         "title": entry.get("title", "Untitled"),
                         "summary": content,
                         "source": feed_title,
                         "url": link,
-                        "image": self._extract_image(entry),
+                        "image": image,
                         "category": tags[0] if tags else "RSS",
                         "tags": tags or ["rss"],
                     }
