@@ -11,7 +11,7 @@ load_dotenv(BASE_DIR.parent / ".env")
 
 SECRET_KEY = os.getenv("SECRET_KEY", "unsafe-dev-key")
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "fxlfm.com,www.fxlfm.com,localhost,127.0.0.1").split(",")
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", ".fxlfm.com,fxlfm.com,localhost,127.0.0.1").split(",")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
