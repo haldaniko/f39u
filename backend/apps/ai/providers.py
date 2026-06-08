@@ -224,6 +224,7 @@ class OpenRouterRewriter(FallbackRewriter):
             "Rewrite this article as a complete publication-ready story and return only JSON with fields "
             "title, summary, body, seo_description, tags. "
             "Rules: title <= 300 chars, seo_description <= 320 chars, tags must be an array of short strings. "
+            "Detect the source language; if it is not English, translate the final title, summary, body, and seo_description into English. "
             "Remove teaser phrases like 'Read the full story', 'Read more', 'Continue reading'. "
             "If the source text is partial, expand it into a coherent full article using only the provided facts. "
             "You may add neutral context, transitions, and conclusions, but do not invent events, names, dates, "

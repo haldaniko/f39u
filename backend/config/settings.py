@@ -134,11 +134,11 @@ SIMPLE_JWT = {
 
 CORS_ALLOWED_ORIGINS = os.getenv(
     "CORS_ALLOWED_ORIGINS",
-    "https://fxlfm.com,https://www.fxlfm.com,http://localhost:5174",
+    "https://fxlfm.com,https://www.fxlfm.com,http://localhost:5173,http://localhost:5174",
 ).split(",")
 CSRF_TRUSTED_ORIGINS = os.getenv(
     "CSRF_TRUSTED_ORIGINS",
-    "https://fxlfm.com,https://www.fxlfm.com,http://localhost:5174",
+    "https://fxlfm.com,https://www.fxlfm.com,http://localhost:5173,http://localhost:5174",
 ).split(",")
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
