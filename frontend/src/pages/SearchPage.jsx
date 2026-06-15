@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import PageSkeleton from "../components/PageSkeleton";
+import Seo, { withBrand } from "../components/Seo";
 import { useSearch } from "../hooks/useNewsQuery";
 
 export default function SearchPage() {
@@ -10,6 +11,12 @@ export default function SearchPage() {
 
   return (
     <section className="max-w-4xl mx-auto">
+      <Seo
+        title={withBrand(query.length > 1 ? `Search Results for ${query}` : "Search News")}
+        description="Search FXLFM for the latest global news, reporting and analysis."
+        path="/search"
+        noindex
+      />
       <h1 className="font-display text-4xl">Search Stories</h1>
       <input
         value={query}

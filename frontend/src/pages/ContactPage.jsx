@@ -1,10 +1,17 @@
 import { useState } from "react";
 
+import Seo, { withBrand } from "../components/Seo";
+
 export default function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
 
   return (
     <section className="max-w-2xl mx-auto">
+      <Seo
+        title={withBrand("Contact the Editorial Team")}
+        description="Contact the FXLFM editorial team about corrections, partnerships, story tips or source information."
+        path="/contact"
+      />
       <h1 className="font-display text-4xl">Contact Editorial Team</h1>
       <p className="mt-2 text-slate-600 dark:text-slate-300">Send partnerships, corrections, or source tips.</p>
       <form

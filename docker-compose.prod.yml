@@ -5,6 +5,8 @@ services:
     command: sh -c "python manage.py makemigrations news ai analytics --noinput && python manage.py migrate --noinput && python manage.py fetch_external_news && python manage.py collectstatic --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3"
     env_file:
       - .env
+    environment:
+      - FRONTEND_INTERNAL_URL=http://frontend:4173
     restart: always
     depends_on:
       - postgres
@@ -26,6 +28,7 @@ services:
     command: sh -c "npm install && npm run build && npm run preview"
     environment:
       - VITE_API_BASE_URL=/api
+      - VITE_SITE_URL=https://fxlfm.com
     restart: always
     ports:
       - "5174:4173"

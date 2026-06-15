@@ -3,6 +3,7 @@ from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
 from apps.analytics.views import AdminStatisticsView
+from apps.news.seo_views import about_page, article_page, category_page, contact_page, search_page
 from apps.news.views import CategoryViewSet, TagViewSet, TrendingView, search_view
 
 urlpatterns = [
@@ -19,4 +20,14 @@ urlpatterns = [
     path("api/ai/", include("apps.ai.urls")),
     path("api/auth/", include("apps.users.urls")),
     path("api/analytics/", include("apps.analytics.urls")),
+    path("article/<slug:slug>", article_page, name="article-page"),
+    path("article/<slug:slug>/", article_page),
+    path("category/<slug:slug>", category_page, name="category-page"),
+    path("category/<slug:slug>/", category_page),
+    path("about", about_page, name="about-page"),
+    path("about/", about_page),
+    path("contact", contact_page, name="contact-page"),
+    path("contact/", contact_page),
+    path("search", search_page, name="search-page"),
+    path("search/", search_page),
 ]
