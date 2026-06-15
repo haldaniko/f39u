@@ -80,6 +80,12 @@ class ArticleModelTests(TestCase):
         )
         self.assertTrue(article.slug)
 
+    def test_health_endpoint(self):
+        response = self.client.get("/api/health/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"status": "ok"})
+
 
 class ArticleSchemaViewTests(TestCase):
     @patch("apps.news.seo_views.requests.get")

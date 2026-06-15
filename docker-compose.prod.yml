@@ -2,7 +2,7 @@ services:
   backend:
     build:
       context: ./backend
-    command: sh -c "python manage.py makemigrations news ai analytics --noinput && python manage.py migrate --noinput && python manage.py fetch_external_news && python manage.py collectstatic --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+    command: sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3"
     env_file:
       - .env
     environment:
@@ -17,10 +17,11 @@ services:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
     healthcheck:
-      test: ["CMD", "python", "manage.py", "check"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health/', timeout=3)"]
+      interval: 10s
+      timeout: 4s
+      retries: 12
+      start_period: 20s
 
   frontend:
     build:
@@ -37,6 +38,9 @@ services:
       interval: 60s
       timeout: 10s
       retries: 3
+    depends_on:
+      backend:
+        condition: service_healthy
 
   postgres:
     image: postgres:16-alpine

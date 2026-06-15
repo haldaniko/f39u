@@ -5,12 +5,13 @@ import ArticleCard from "../components/ArticleCard";
 import PageSkeleton from "../components/PageSkeleton";
 import SectionHeader from "../components/SectionHeader";
 import Seo from "../components/Seo";
-import { useCategories, useInfiniteNews, useTrending } from "../hooks/useNewsQuery";
+import { useAuthor, useCategories, useInfiniteNews, useTrending } from "../hooks/useNewsQuery";
 
 export default function HomePage() {
   const newsQuery = useInfiniteNews();
   const trendingQuery = useTrending();
   const categoriesQuery = useCategories();
+  const authorQuery = useAuthor("maria-nicholson");
 
   const articles = newsQuery.data?.pages.flatMap((page) => page.results || []) || [];
   const categories = Array.isArray(categoriesQuery.data)
@@ -80,6 +81,28 @@ export default function HomePage() {
           ))}
         </div>
         </section>
+
+        {authorQuery.data && (
+          <section className="glass rounded-3xl p-6 md:p-8 grid gap-6 md:grid-cols-[160px_1fr] items-center">
+            <img
+              src={authorQuery.data.photo_url}
+              alt={authorQuery.data.name}
+              className="w-40 h-40 object-cover rounded-3xl"
+            />
+            <div>
+              <p className="font-ui uppercase tracking-[0.2em] text-brand-700 dark:text-brand-300">Meet the Editor</p>
+              <h2 className="font-display text-3xl mt-2">{authorQuery.data.name}</h2>
+              <p className="mt-1 text-slate-600 dark:text-slate-300">{authorQuery.data.job_title}</p>
+              <p className="mt-3 text-slate-700 dark:text-slate-300 max-w-3xl">{authorQuery.data.bio}</p>
+              <Link
+                to={`/author/${authorQuery.data.slug}`}
+                className="inline-block mt-5 bg-brand-700 hover:bg-brand-900 text-white px-5 py-2 rounded-full font-ui"
+              >
+                View author profile
+              </Link>
+            </div>
+          </section>
+        )}
 
         <section>
         <SectionHeader eyebrow="Feed" title="Latest News" />

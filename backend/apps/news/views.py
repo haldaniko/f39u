@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.db.models import Q
+from django.http import JsonResponse
 from rest_framework import permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -16,6 +17,10 @@ from .serializers import (
     TagSerializer,
 )
 from .services import NewsQueryService
+
+
+def health_view(request):
+    return JsonResponse({"status": "ok"})
 
 
 class ArticleViewSet(ReadOnlyModelViewSet):
