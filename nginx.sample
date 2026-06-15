@@ -59,7 +59,7 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 
-    location ~ ^/(article|category)/[^/]+/?$ {
+    location ~ ^/(article|category|author)/[^/]+/?$ {
         proxy_pass http://future_xclusive_backend;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;

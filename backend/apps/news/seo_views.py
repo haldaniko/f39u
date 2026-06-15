@@ -12,7 +12,7 @@ from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.utils import timezone
 
-from .models import Article, Category
+from .models import Article, Author, Category
 
 SITE_NAME = "FXLFM"
 SITE_URL = os.getenv("SITE_URL", "https://fxlfm.com").rstrip("/")
@@ -153,7 +153,7 @@ def _spa_shell(seo_head: str, root_html: str = "") -> HttpResponse:
 def article_page(request: HttpRequest, slug: str) -> HttpResponse:
     article = get_object_or_404(
         Article.objects.filter(status=Article.Status.PUBLISHED)
-        .select_related("category")
+        .select_related("category", "author")
         .prefetch_related("tags"),
         slug=slug,
     )
@@ -161,6 +161,27 @@ def article_page(request: HttpRequest, slug: str) -> HttpResponse:
     published_at = publication_date.isoformat()
     updated_at = (article.updated_at or publication_date).isoformat()
     article_url = _absolute_url(f"/article/{article.slug}")
+    author = article.author
+    if author:
+        author_url = _absolute_url(f"/author/{author.slug}")
+        author_data = {
+            "@type": "Person",
+            "name": author.name,
+            "url": author_url,
+        }
+        social_urls = [
+            url
+            for url in [author.x_url, author.linkedin_url, author.instagram_url]
+            if url
+        ]
+        if social_urls:
+            author_data["sameAs"] = social_urls
+    else:
+        author_data = {
+            "@type": "Organization",
+            "name": "Future Xclusive News",
+            "url": _absolute_url("/"),
+        }
     structured_data = {
         "@context": "https://schema.org",
         "@type": "NewsArticle",
@@ -172,11 +193,7 @@ def article_page(request: HttpRequest, slug: str) -> HttpResponse:
         },
         "datePublished": published_at,
         "dateModified": updated_at,
-        "author": {
-            "@type": "Organization",
-            "name": "Future Xclusive News",
-            "url": _absolute_url("/"),
-        },
+        "author": author_data,
         "publisher": {
             "@type": "Organization",
             "name": "Future Xclusive News",
@@ -217,6 +234,57 @@ def article_page(request: HttpRequest, slug: str) -> HttpResponse:
             page_type="article",
             published_at=published_at,
             structured_data=structured_data,
+        ),
+        root_html=root_html,
+    )
+
+
+def author_page(request: HttpRequest, slug: str) -> HttpResponse:
+    author = get_object_or_404(Author, slug=slug)
+    articles = list(
+        author.articles.filter(status=Article.Status.PUBLISHED)
+        .select_related("category")
+        .order_by("-published_at", "-created_at")[:50]
+    )
+    author_url = _absolute_url(f"/author/{author.slug}")
+    social_urls = [
+        url
+        for url in [author.x_url, author.linkedin_url, author.instagram_url]
+        if url
+    ]
+    person_schema = {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": author.name,
+        "url": author_url,
+        "jobTitle": author.job_title,
+        "description": _clean_text(author.bio),
+    }
+    if author.photo_url:
+        person_schema["image"] = _absolute_url(author.photo_url)
+    if author.location:
+        person_schema["homeLocation"] = {
+            "@type": "Place",
+            "name": author.location,
+        }
+    if social_urls:
+        person_schema["sameAs"] = social_urls
+
+    root_html = render_to_string(
+        "news/author_ssr.html",
+        {
+            "author": author,
+            "articles": articles,
+            "current_year": timezone.now().year,
+        },
+    )
+    return _spa_shell(
+        _seo_head(
+            title=f"{author.name}, {author.job_title}",
+            description=author.bio,
+            path=f"/author/{author.slug}",
+            image=author.photo_url,
+            structured_data=person_schema,
         ),
         root_html=root_html,
     )

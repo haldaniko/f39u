@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 
 from django.contrib.sitemaps import Sitemap
 
-from .models import Article, Category
+from .models import Article, Author, Category
 
 SITE_URL = os.getenv("SITE_URL", "https://fxlfm.com").rstrip("/")
 PARSED_SITE_URL = urlparse(SITE_URL)
@@ -67,8 +67,20 @@ class StaticPageSitemap(CanonicalSitemap):
         return path
 
 
+class AuthorSitemap(CanonicalSitemap):
+    changefreq = "weekly"
+    priority = 0.7
+
+    def items(self):
+        return Author.objects.filter(articles__status=Article.Status.PUBLISHED).distinct().order_by("slug")
+
+    def location(self, author: Author) -> str:
+        return f"/author/{author.slug}"
+
+
 sitemaps = {
     "articles": ArticleSitemap,
     "categories": CategorySitemap,
+    "authors": AuthorSitemap,
     "static": StaticPageSitemap,
 }

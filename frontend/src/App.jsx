@@ -6,6 +6,7 @@ import PageSkeleton from "./components/PageSkeleton";
 
 const HomePage = lazy(() => import("./pages/HomePage"));
 const ArticlePage = lazy(() => import("./pages/ArticlePage"));
+const AuthorPage = lazy(() => import("./pages/AuthorPage"));
 const CategoryPage = lazy(() => import("./pages/CategoryPage"));
 const SearchPage = lazy(() => import("./pages/SearchPage"));
 const AboutPage = lazy(() => import("./pages/AboutPage"));
@@ -33,6 +34,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/article/:slug" element={<ArticlePage />} />
+          <Route path="/author/:slug" element={<AuthorPage />} />
           <Route path="/category/:slug" element={<CategoryPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/about" element={<AboutPage />} />

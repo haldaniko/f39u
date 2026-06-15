@@ -13,6 +13,11 @@ export async function fetchArticle(slug) {
   return data;
 }
 
+export async function fetchAuthor(slug) {
+  const { data } = await apiClient.get(`/authors/${slug}/`);
+  return data;
+}
+
 export async function fetchTrending() {
   const { data } = await apiClient.get("/trending/");
   return data;

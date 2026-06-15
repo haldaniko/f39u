@@ -7,8 +7,14 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
-from .models import Article, Category, Tag
-from .serializers import ArticleDetailSerializer, ArticleListSerializer, CategorySerializer, TagSerializer
+from .models import Article, Author, Category, Tag
+from .serializers import (
+    ArticleDetailSerializer,
+    ArticleListSerializer,
+    AuthorDetailSerializer,
+    CategorySerializer,
+    TagSerializer,
+)
 from .services import NewsQueryService
 
 
@@ -18,7 +24,11 @@ class ArticleViewSet(ReadOnlyModelViewSet):
     search_fields = ["title", "summary", "rewritten_content"]
 
     def get_queryset(self):
-        return Article.objects.filter(status=Article.Status.PUBLISHED).select_related("category").prefetch_related("tags")
+        return (
+            Article.objects.filter(status=Article.Status.PUBLISHED)
+            .select_related("category", "author")
+            .prefetch_related("tags")
+        )
 
     def get_serializer_class(self):
         if self.action == "retrieve":
@@ -36,6 +46,13 @@ class CategoryViewSet(ReadOnlyModelViewSet):
 class TagViewSet(ReadOnlyModelViewSet):
     queryset = Tag.objects.all().order_by("name")
     serializer_class = TagSerializer
+    permission_classes = [permissions.AllowAny]
+    lookup_field = "slug"
+
+
+class AuthorViewSet(ReadOnlyModelViewSet):
+    queryset = Author.objects.all().order_by("name")
+    serializer_class = AuthorDetailSerializer
     permission_classes = [permissions.AllowAny]
     lookup_field = "slug"
 

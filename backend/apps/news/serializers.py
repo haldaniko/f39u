@@ -2,7 +2,24 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
-from .models import Article, Category, Tag
+from .models import Article, Author, Category, Tag
+
+
+class AuthorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Author
+        fields = [
+            "name",
+            "slug",
+            "job_title",
+            "bio",
+            "photo_url",
+            "location",
+            "x_url",
+            "linkedin_url",
+            "instagram_url",
+            "joined_at",
+        ]
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -35,6 +52,7 @@ class ArticleListSerializer(serializers.ModelSerializer):
 
 class ArticleDetailSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
+    author = AuthorSerializer(read_only=True)
     tags = TagSerializer(many=True, read_only=True)
 
     class Meta:
@@ -52,5 +70,17 @@ class ArticleDetailSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "category",
+            "author",
             "tags",
         ]
+
+
+class AuthorDetailSerializer(AuthorSerializer):
+    articles = serializers.SerializerMethodField()
+
+    class Meta(AuthorSerializer.Meta):
+        fields = AuthorSerializer.Meta.fields + ["articles"]
+
+    def get_articles(self, author: Author):
+        queryset = author.articles.filter(status=Article.Status.PUBLISHED).select_related("category")[:50]
+        return ArticleListSerializer(queryset, many=True).data

@@ -40,6 +40,10 @@ export default function ArticlePage() {
   const articleUrl = absoluteUrl(`/article/${article.slug}`);
   const publicationDate = article.published_at || article.created_at;
   const modifiedDate = article.updated_at || publicationDate;
+  const author = article.author;
+  const authorSocialUrls = author
+    ? [author.x_url, author.linkedin_url, author.instagram_url].filter(Boolean)
+    : [];
   const newsArticleSchema = {
     "@context": "https://schema.org",
     "@type": "NewsArticle",
@@ -51,11 +55,18 @@ export default function ArticlePage() {
     },
     datePublished: publicationDate,
     dateModified: modifiedDate,
-    author: {
-      "@type": "Organization",
-      name: "Future Xclusive News",
-      url: absoluteUrl("/"),
-    },
+    author: author
+      ? {
+          "@type": "Person",
+          name: author.name,
+          url: absoluteUrl(`/author/${author.slug}`),
+          ...(authorSocialUrls.length ? { sameAs: authorSocialUrls } : {}),
+        }
+      : {
+          "@type": "Organization",
+          name: "Future Xclusive News",
+          url: absoluteUrl("/"),
+        },
     publisher: {
       "@type": "Organization",
       name: "Future Xclusive News",
@@ -88,7 +99,7 @@ export default function ArticlePage() {
         <p className="font-ui mt-5 text-xs uppercase tracking-[0.24em] text-brand-700 dark:text-brand-300">{article.source_name}</p>
         <h1 className="font-display text-4xl md:text-5xl mt-3">{article.title}</h1>
         <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-slate-600 dark:text-slate-300 font-ui">
-          <span>By Future Xclusive News</span>
+          {author ? <Link to={`/author/${author.slug}`}>By {author.name}</Link> : <span>By Future Xclusive News</span>}
           <span>{formatDate(publicationDate)}</span>
           <span>{estimateReadingTime(article.rewritten_content)}</span>
         </div>

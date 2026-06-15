@@ -4,6 +4,30 @@ from django.db import models
 from django.utils.text import slugify
 
 
+class Author(models.Model):
+    name = models.CharField(max_length=120)
+    slug = models.SlugField(max_length=140, unique=True, blank=True)
+    job_title = models.CharField(max_length=160, blank=True)
+    bio = models.TextField(blank=True)
+    photo_url = models.URLField(max_length=500, blank=True)
+    location = models.CharField(max_length=160, blank=True)
+    x_url = models.URLField(max_length=500, blank=True)
+    linkedin_url = models.URLField(max_length=500, blank=True)
+    instagram_url = models.URLField(max_length=500, blank=True)
+    joined_at = models.DateField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return self.name
+
+
 class Category(models.Model):
     name = models.CharField(max_length=120, unique=True)
     slug = models.SlugField(max_length=140, unique=True, blank=True)
@@ -64,6 +88,13 @@ class Article(models.Model):
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
     image_url = models.URLField(max_length=500, blank=True)
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name="articles")
+    author = models.ForeignKey(
+        Author,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="articles",
+    )
     tags = models.ManyToManyField(Tag, blank=True, related_name="articles")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

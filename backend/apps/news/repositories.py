@@ -6,7 +6,7 @@ from hashlib import sha1
 from django.db.models import QuerySet
 from django.utils.text import slugify
 
-from .models import Article, Category, Source, Tag
+from .models import Article, Author, Category, Source, Tag
 
 
 @dataclass
@@ -76,6 +76,7 @@ class ArticleRepository:
     @staticmethod
     def upsert_original(payload: NormalizedArticle) -> tuple[Article, bool]:
         category, _ = Category.objects.get_or_create(name=payload.category)
+        author = Author.objects.filter(slug="maria-nicholson").first()
         base_slug = slugify(payload.title)[:240] or "article"
         unique_suffix = sha1(payload.source_url.encode("utf-8")).hexdigest()[:10]
         unique_slug = f"{base_slug}-{unique_suffix}"[:300]
@@ -94,6 +95,7 @@ class ArticleRepository:
                 "source_name": payload.source_name,
                 "image_url": payload.image_url,
                 "category": category,
+                "author": author,
                 "status": Article.Status.DRAFT,
             },
         )

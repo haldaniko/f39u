@@ -30,7 +30,11 @@
       <p class="font-ui mt-5 text-xs uppercase tracking-widest text-brand-700">{{ article.source_name }}</p>
       <h1 class="font-display text-4xl md:text-5xl mt-3">{{ article.title }}</h1>
       <div class="mt-3 flex flex-wrap items-center gap-4 text-sm text-slate-600 font-ui">
-        <span>By Future Xclusive News</span>
+        {% if article.author %}
+          <a href="/author/{{ article.author.slug }}">By {{ article.author.name }}</a>
+        {% else %}
+          <span>By Future Xclusive News</span>
+        {% endif %}
         <time datetime="{{ publication_date|date:'c' }}">{{ publication_date|date:"F j, Y" }}</time>
       </div>
       {% if article.summary %}
