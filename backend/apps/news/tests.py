@@ -1,6 +1,7 @@
 import json
 import re
 from unittest.mock import Mock, patch
+from xml.etree import ElementTree
 
 from django.test import SimpleTestCase, TestCase
 from django.utils import timezone
@@ -139,3 +140,53 @@ class ArticleSchemaViewTests(TestCase):
         self.assertNotIn("<script>alert('x')</script>", rendered)
         self.assertIn("By Future Xclusive News", rendered)
         self.assertNotIn('<div id="root"></div>', rendered)
+
+
+class SitemapTests(TestCase):
+    def test_sitemap_contains_published_content_and_excludes_drafts(self):
+        published_category = Category.objects.create(name="Technology")
+        empty_category = Category.objects.create(name="Empty")
+        published = Article.objects.create(
+            title="Published Article",
+            original_title="Published Article",
+            original_content="Published content",
+            source_name="Unit Test",
+            source_url="https://example.com/news/published",
+            category=published_category,
+            status=Article.Status.PUBLISHED,
+            published_at=timezone.now(),
+        )
+        draft = Article.objects.create(
+            title="Draft Article",
+            original_title="Draft Article",
+            original_content="Draft content",
+            source_name="Unit Test",
+            source_url="https://example.com/news/draft",
+            category=empty_category,
+            status=Article.Status.DRAFT,
+        )
+
+        response = self.client.get("/sitemap.xml")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/xml")
+        root = ElementTree.fromstring(response.content)
+        namespace = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+        locations = {element.text for element in root.findall("sm:url/sm:loc", namespace)}
+        self.assertIn(f"https://fxlfm.com/article/{published.slug}", locations)
+        self.assertNotIn(f"https://fxlfm.com/article/{draft.slug}", locations)
+        self.assertIn(f"https://fxlfm.com/category/{published_category.slug}", locations)
+        self.assertNotIn(f"https://fxlfm.com/category/{empty_category.slug}", locations)
+        self.assertIn("https://fxlfm.com/", locations)
+        self.assertIn("https://fxlfm.com/about", locations)
+        self.assertIn("https://fxlfm.com/contact", locations)
+        self.assertNotIn("https://fxlfm.com/search", locations)
+
+    def test_robots_txt_points_to_sitemap(self):
+        response = self.client.get("/robots.txt")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "text/plain; charset=utf-8")
+        content = response.content.decode()
+        self.assertIn("User-agent: *", content)
+        self.assertIn("Sitemap: https://fxlfm.com/sitemap.xml", content)

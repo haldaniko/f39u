@@ -1,12 +1,17 @@
 from django.contrib import admin
+from django.contrib.sitemaps.views import sitemap
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
 from apps.analytics.views import AdminStatisticsView
+from apps.news.sitemap_views import robots_txt
+from apps.news.sitemaps import sitemaps
 from apps.news.seo_views import about_page, article_page, category_page, contact_page, search_page
 from apps.news.views import CategoryViewSet, TagViewSet, TrendingView, search_view
 
 urlpatterns = [
+    path("sitemap.xml", sitemap, {"sitemaps": sitemaps}, name="sitemap"),
+    path("robots.txt", robots_txt, name="robots-txt"),
     path("admin/", admin.site.urls),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),

@@ -19,6 +19,18 @@ server {
         add_header Content-Type text/plain;
     }
 
+    location = /sitemap.xml {
+        proxy_pass http://future_xclusive_backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location = /robots.txt {
+        proxy_pass http://future_xclusive_backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
     location /api/ {
         proxy_pass http://future_xclusive_backend;
         proxy_set_header Host $host;
