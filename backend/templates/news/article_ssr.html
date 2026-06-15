@@ -57,6 +57,25 @@
           <a href="{{ article.source_url }}" rel="nofollow noopener" target="_blank">View original source</a>
         </p>
       {% endif %}
+
+      {% if related_articles %}
+        <section class="mt-12" aria-labelledby="related-stories-heading">
+          <h2 id="related-stories-heading" class="font-display text-2xl">Related Stories</h2>
+          <div class="mt-4 grid md:grid-cols-2 gap-3">
+            {% for related in related_articles %}
+              <article class="rounded-xl border border-slate-200 p-4">
+                {% if related.category %}
+                  <p class="font-ui text-xs uppercase tracking-widest text-brand-700">{{ related.category.name }}</p>
+                {% endif %}
+                <h3 class="font-display text-lg mt-1">
+                  <a href="/article/{{ related.slug }}">{{ related.title }}</a>
+                </h3>
+                {% if related.summary %}<p class="mt-2 text-sm text-slate-600">{{ related.summary|truncatechars:150 }}</p>{% endif %}
+              </article>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
     </article>
   </main>
 

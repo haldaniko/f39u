@@ -13,6 +13,7 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 
 from .models import Article, Author, Category
+from .services import NewsQueryService
 
 SITE_NAME = "FXLFM"
 SITE_URL = os.getenv("SITE_URL", "https://fxlfm.com").rstrip("/")
@@ -221,6 +222,7 @@ def article_page(request: HttpRequest, slug: str) -> HttpResponse:
             "publication_date": publication_date,
             "body_paragraphs": body_paragraphs,
             "tags": article.tags.all(),
+            "related_articles": NewsQueryService.related(article, limit=4),
             "current_year": timezone.now().year,
         },
     )

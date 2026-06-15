@@ -2,13 +2,13 @@ import { Link, useParams } from "react-router-dom";
 
 import PageSkeleton from "../components/PageSkeleton";
 import Seo, { absoluteUrl, withBrand } from "../components/Seo";
-import { useArticle, useTrending } from "../hooks/useNewsQuery";
+import { useArticle, useRelatedStories } from "../hooks/useNewsQuery";
 import { estimateReadingTime, formatDate } from "../utils/formatters";
 
 export default function ArticlePage() {
   const { slug } = useParams();
   const { data: article, isLoading } = useArticle(slug);
-  const { data: related = [] } = useTrending();
+  const { data: related = [] } = useRelatedStories(slug);
 
   if (isLoading) {
     return (
@@ -122,9 +122,15 @@ export default function ArticlePage() {
         <section className="mt-12">
           <h2 className="font-display text-2xl">Related Stories</h2>
           <div className="mt-4 grid md:grid-cols-2 gap-3">
-            {related.slice(0, 4).map((item) => (
-              <Link key={item.slug} to={`/article/${item.slug}`} className="glass rounded-xl p-3 hover:shadow-lg">
-                <p className="font-display text-lg">{item.title}</p>
+            {related.map((item) => (
+              <Link key={item.slug} to={`/article/${item.slug}`} className="glass rounded-xl p-4 hover:shadow-lg">
+                {item.category?.name && (
+                  <p className="font-ui text-xs uppercase tracking-[0.18em] text-brand-700 dark:text-brand-300">
+                    {item.category.name}
+                  </p>
+                )}
+                <p className="font-display text-lg mt-1">{item.title}</p>
+                {item.summary && <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{item.summary}</p>}
               </Link>
             ))}
           </div>

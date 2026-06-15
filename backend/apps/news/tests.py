@@ -232,6 +232,89 @@ class AuthorPageTests(TestCase):
         self.assertEqual(api_response.data["articles"][0]["slug"], article.slug)
 
 
+class RelatedStoriesTests(TestCase):
+    @patch("apps.news.seo_views.requests.get")
+    def test_related_stories_prioritize_tags_then_category_and_render_in_ssr(self, mock_get):
+        frontend_response = Mock()
+        frontend_response.text = """
+            <html><head>
+              <meta name="seo-head-start" content="" />
+              <title>Default title</title>
+              <meta name="seo-head-end" content="" />
+            </head><body><div id="root"></div></body></html>
+        """
+        frontend_response.raise_for_status.return_value = None
+        mock_get.return_value = frontend_response
+
+        author = Author.objects.get(slug="maria-nicholson")
+        technology = Category.objects.create(name="Technology")
+        business = Category.objects.create(name="Business")
+        ai_tag = Tag.objects.create(name="Artificial Intelligence")
+        published_at = timezone.now()
+
+        target = Article.objects.create(
+            title="Target AI Story",
+            original_title="Target AI Story",
+            original_content="Target content",
+            source_name="Unit Test",
+            source_url="https://example.com/news/related-target",
+            category=technology,
+            author=author,
+            status=Article.Status.PUBLISHED,
+            published_at=published_at,
+        )
+        target.tags.add(ai_tag)
+        tag_match = Article.objects.create(
+            title="AI Investment Expands",
+            original_title="AI Investment Expands",
+            original_content="Tag match content",
+            source_name="Unit Test",
+            source_url="https://example.com/news/related-tag",
+            category=business,
+            author=author,
+            status=Article.Status.PUBLISHED,
+            published_at=published_at,
+        )
+        tag_match.tags.add(ai_tag)
+        category_match = Article.objects.create(
+            title="Technology Sector Update",
+            original_title="Technology Sector Update",
+            original_content="Category match content",
+            source_name="Unit Test",
+            source_url="https://example.com/news/related-category",
+            category=technology,
+            author=author,
+            status=Article.Status.PUBLISHED,
+            published_at=published_at,
+        )
+        draft_match = Article.objects.create(
+            title="Draft AI Story",
+            original_title="Draft AI Story",
+            original_content="Draft content",
+            source_name="Unit Test",
+            source_url="https://example.com/news/related-draft",
+            category=technology,
+            author=author,
+            status=Article.Status.DRAFT,
+        )
+        draft_match.tags.add(ai_tag)
+
+        api_response = self.client.get(f"/api/news/{target.slug}/related/")
+        page_response = self.client.get(f"/article/{target.slug}")
+
+        self.assertEqual(api_response.status_code, 200)
+        related_slugs = [item["slug"] for item in api_response.data]
+        self.assertEqual(related_slugs[:2], [tag_match.slug, category_match.slug])
+        self.assertNotIn(target.slug, related_slugs)
+        self.assertNotIn(draft_match.slug, related_slugs)
+
+        rendered = page_response.content.decode()
+        self.assertIn("Related Stories", rendered)
+        self.assertIn(f'href="/article/{tag_match.slug}"', rendered)
+        self.assertIn(f'href="/article/{category_match.slug}"', rendered)
+        self.assertNotIn(f'href="/article/{draft_match.slug}"', rendered)
+
+
 class SitemapTests(TestCase):
     def test_sitemap_contains_published_content_and_excludes_drafts(self):
         published_category = Category.objects.create(name="Technology")

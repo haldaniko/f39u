@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import Counter
 
-from django.db.models import Count
+from django.db.models import Case, Count, IntegerField, Q, Value, When
 
 from .models import Article
 from .providers import get_providers
@@ -32,6 +32,34 @@ class NewsQueryService:
             .order_by("-total")[:limit]
         )
         return [{"name": item["category__name"] or "General", "total": item["total"]} for item in data]
+
+    @staticmethod
+    def related(article: Article, limit: int = 4):
+        tag_ids = [tag.id for tag in article.tags.all()]
+        queryset = ArticleRepository.published().exclude(pk=article.pk)
+
+        if tag_ids:
+            queryset = queryset.annotate(
+                matching_tags=Count(
+                    "tags",
+                    filter=Q(tags__id__in=tag_ids),
+                    distinct=True,
+                )
+            )
+        else:
+            queryset = queryset.annotate(matching_tags=Value(0, output_field=IntegerField()))
+
+        queryset = queryset.annotate(
+            category_match=Case(
+                When(category_id=article.category_id, then=Value(1)),
+                default=Value(0),
+                output_field=IntegerField(),
+            )
+        )
+        return (
+            queryset.select_related("category")
+            .order_by("-matching_tags", "-category_match", "-published_at", "-created_at")[:limit]
+        )
 
 
 class NewsCleanupService:

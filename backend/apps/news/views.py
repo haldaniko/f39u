@@ -4,6 +4,7 @@ from django.db.models import Q
 from django.http import JsonResponse
 from rest_framework import permissions
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ReadOnlyModelViewSet
@@ -39,6 +40,12 @@ class ArticleViewSet(ReadOnlyModelViewSet):
         if self.action == "retrieve":
             return ArticleDetailSerializer
         return ArticleListSerializer
+
+    @action(detail=True, methods=["get"])
+    def related(self, request, slug=None):
+        article = self.get_object()
+        queryset = NewsQueryService.related(article, limit=4)
+        return Response(ArticleListSerializer(queryset, many=True).data)
 
 
 class CategoryViewSet(ReadOnlyModelViewSet):

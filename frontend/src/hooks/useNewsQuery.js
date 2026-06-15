@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 
-import { fetchArticle, fetchAuthor, fetchCategories, fetchNews, fetchTrending, searchNews } from "../services/newsService";
+import { fetchArticle, fetchAuthor, fetchCategories, fetchNews, fetchRelatedStories, fetchTrending, searchNews } from "../services/newsService";
 
 export function useInfiniteNews() {
   return useInfiniteQuery({
@@ -28,6 +28,14 @@ export function useArticle(slug) {
   return useQuery({
     queryKey: ["article", slug],
     queryFn: () => fetchArticle(slug),
+    enabled: Boolean(slug),
+  });
+}
+
+export function useRelatedStories(slug) {
+  return useQuery({
+    queryKey: ["article", slug, "related"],
+    queryFn: () => fetchRelatedStories(slug),
     enabled: Boolean(slug),
   });
 }
