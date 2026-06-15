@@ -9,6 +9,8 @@ from urllib.parse import urljoin
 import requests
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404
+from django.template.loader import render_to_string
+from django.utils import timezone
 
 from .models import Article, Category
 
@@ -21,6 +23,10 @@ SEO_BLOCK_PATTERN = re.compile(
     r'<meta\s+name=["\']seo-head-start["\'][^>]*>.*?'
     r'<meta\s+name=["\']seo-head-end["\'][^>]*>',
     flags=re.DOTALL | re.IGNORECASE,
+)
+ROOT_ELEMENT_PATTERN = re.compile(
+    r'(<div\s+id=["\']root["\'][^>]*>)\s*(</div>)',
+    flags=re.IGNORECASE,
 )
 
 
@@ -116,7 +122,7 @@ def _seo_head(
     return "\n    ".join(tags)
 
 
-def _spa_shell(seo_head: str) -> HttpResponse:
+def _spa_shell(seo_head: str, root_html: str = "") -> HttpResponse:
     try:
         response = requests.get(
             f"{FRONTEND_INTERNAL_URL}/",
@@ -130,6 +136,17 @@ def _spa_shell(seo_head: str) -> HttpResponse:
     html = SEO_BLOCK_PATTERN.sub(seo_head, response.text, count=1)
     if html == response.text:
         return HttpResponse("Frontend SEO shell is not configured.", status=503)
+
+    if root_html:
+        html_with_content = ROOT_ELEMENT_PATTERN.sub(
+            lambda match: f"{match.group(1)}{root_html}{match.group(2)}",
+            html,
+            count=1,
+        )
+        if html_with_content == html:
+            return HttpResponse("Frontend root element is not configured.", status=503)
+        html = html_with_content
+
     return HttpResponse(html, content_type="text/html; charset=utf-8")
 
 
@@ -174,6 +191,23 @@ def article_page(request: HttpRequest, slug: str) -> HttpResponse:
     if keywords:
         structured_data["keywords"] = ", ".join(keywords)
 
+    body_content = article.rewritten_content or article.original_content
+    body_paragraphs = [
+        paragraph.strip()
+        for paragraph in re.split(r"\n\s*\n|\n", body_content)
+        if paragraph.strip()
+    ]
+    root_html = render_to_string(
+        "news/article_ssr.html",
+        {
+            "article": article,
+            "publication_date": publication_date,
+            "body_paragraphs": body_paragraphs,
+            "tags": article.tags.all(),
+            "current_year": timezone.now().year,
+        },
+    )
+
     return _spa_shell(
         _seo_head(
             title=article.title,
@@ -183,7 +217,8 @@ def article_page(request: HttpRequest, slug: str) -> HttpResponse:
             page_type="article",
             published_at=published_at,
             structured_data=structured_data,
-        )
+        ),
+        root_html=root_html,
     )
 
 

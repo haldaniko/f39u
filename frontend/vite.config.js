@@ -6,6 +6,7 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     port: 5173,
+    allowedHosts: ["fxlfm.com", ".fxlfm.com", "frontend", "localhost"],
   },
   preview: {
     host: "0.0.0.0",

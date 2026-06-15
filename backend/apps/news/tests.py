@@ -101,7 +101,7 @@ class ArticleSchemaViewTests(TestCase):
             title="AI Changes the Technology Industry",
             original_title="AI Changes the Technology Industry",
             original_content="Original content",
-            rewritten_content="Rewritten content",
+            rewritten_content="First server-rendered paragraph.\n\nSecond paragraph with <script>alert('x')</script>.",
             summary="A detailed report about changes in the technology industry.",
             seo_description="How AI is changing the technology industry.",
             source_name="Unit Test",
@@ -132,3 +132,10 @@ class ArticleSchemaViewTests(TestCase):
         self.assertEqual(schema["image"], [article.image_url])
         self.assertEqual(schema["articleSection"], category.name)
         self.assertEqual(schema["keywords"], tag.name)
+        self.assertIn('data-server-rendered="article"', rendered)
+        self.assertIn(f"<h1 class=\"font-display text-4xl md:text-5xl mt-3\">{article.title}</h1>", rendered)
+        self.assertIn("First server-rendered paragraph.", rendered)
+        self.assertIn("Second paragraph with &lt;script&gt;alert", rendered)
+        self.assertNotIn("<script>alert('x')</script>", rendered)
+        self.assertIn("By Future Xclusive News", rendered)
+        self.assertNotIn('<div id="root"></div>', rendered)

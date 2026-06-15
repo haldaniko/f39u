@@ -1,0 +1,65 @@
+<div class="min-h-screen" data-server-rendered="article">
+  <header class="border-b border-slate-200 bg-white/80">
+    <div class="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between gap-4">
+      <a href="/" class="inline-flex items-center gap-3">
+        <img src="/favicon.svg" alt="" width="36" height="36" class="h-9 w-9" />
+        <span>
+          <strong class="font-display tracking-tight text-2xl leading-none">Future Xclusive Local and Foreign Media</strong>
+          <span class="block font-ui uppercase text-xs tracking-widest text-slate-500">Independent News Desk</span>
+        </span>
+      </a>
+      <nav class="flex items-center gap-5" aria-label="Primary navigation">
+        <a href="/">Home</a>
+        <a href="/about">About</a>
+        <a href="/contact">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-7xl px-4 py-8">
+    <article class="max-w-4xl mx-auto">
+      {% if article.image_url %}
+        <img
+          src="{{ article.image_url }}"
+          alt="{{ article.title }}"
+          width="1600"
+          height="900"
+          class="w-full h-64 md:h-96 object-cover rounded-3xl"
+        />
+      {% endif %}
+      <p class="font-ui mt-5 text-xs uppercase tracking-widest text-brand-700">{{ article.source_name }}</p>
+      <h1 class="font-display text-4xl md:text-5xl mt-3">{{ article.title }}</h1>
+      <div class="mt-3 flex flex-wrap items-center gap-4 text-sm text-slate-600 font-ui">
+        <span>By Future Xclusive News</span>
+        <time datetime="{{ publication_date|date:'c' }}">{{ publication_date|date:"F j, Y" }}</time>
+      </div>
+      {% if article.summary %}
+        <p class="mt-4 text-xl text-slate-700">{{ article.summary }}</p>
+      {% endif %}
+      <div class="prose prose-slate max-w-none mt-8">
+        {% for paragraph in body_paragraphs %}
+          <p>{{ paragraph }}</p>
+        {% endfor %}
+      </div>
+      {% if tags %}
+        <div class="mt-6 flex flex-wrap gap-2">
+          {% for tag in tags %}
+            <span class="text-xs rounded-full px-3 py-1">#{{ tag.name }}</span>
+          {% endfor %}
+        </div>
+      {% endif %}
+      {% if article.source_url %}
+        <p class="mt-8 text-sm">
+          <a href="{{ article.source_url }}" rel="nofollow noopener" target="_blank">View original source</a>
+        </p>
+      {% endif %}
+    </article>
+  </main>
+
+  <footer class="border-t border-slate-200 mt-12">
+    <div class="mx-auto max-w-7xl px-4 py-8 text-sm text-slate-600">
+      <p>Future Xclusive Local and Foreign Media - Independent global news desk.</p>
+      <p>&copy; {{ current_year }} Future Xclusive Local and Foreign Media</p>
+    </div>
+  </footer>
+</div>
