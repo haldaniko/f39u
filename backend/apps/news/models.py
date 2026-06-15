@@ -3,6 +3,8 @@ from __future__ import annotations
 from django.db import models
 from django.utils.text import slugify
 
+from .slug_utils import unique_article_slug
+
 
 class Author(models.Model):
     name = models.CharField(max_length=120)
@@ -108,8 +110,20 @@ class Article(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.title)[:280]
+            self.slug = unique_article_slug(self.title, exclude_pk=self.pk)
         super().save(*args, **kwargs)
 
     def __str__(self) -> str:
         return self.title
+
+
+class ArticleSlugRedirect(models.Model):
+    old_slug = models.SlugField(max_length=320, unique=True)
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name="slug_redirects")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.old_slug} -> {self.article.slug}"

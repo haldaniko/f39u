@@ -7,12 +7,12 @@ from html import escape
 from urllib.parse import urljoin
 
 import requests
-from django.http import HttpRequest, HttpResponse
+from django.http import Http404, HttpRequest, HttpResponse, HttpResponsePermanentRedirect
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.utils import timezone
 
-from .models import Article, Author, Category
+from .models import Article, ArticleSlugRedirect, Author, Category
 from .services import NewsQueryService
 
 SITE_NAME = "FXLFM"
@@ -152,12 +152,21 @@ def _spa_shell(seo_head: str, root_html: str = "") -> HttpResponse:
 
 
 def article_page(request: HttpRequest, slug: str) -> HttpResponse:
-    article = get_object_or_404(
+    queryset = (
         Article.objects.filter(status=Article.Status.PUBLISHED)
         .select_related("category", "author")
-        .prefetch_related("tags"),
-        slug=slug,
+        .prefetch_related("tags")
     )
+    article = queryset.filter(slug=slug).first()
+    if article is None:
+        redirect = (
+            ArticleSlugRedirect.objects.select_related("article")
+            .filter(old_slug=slug, article__status=Article.Status.PUBLISHED)
+            .first()
+        )
+        if redirect is None:
+            raise Http404("Article not found")
+        return HttpResponsePermanentRedirect(f"/article/{redirect.article.slug}")
     publication_date = article.published_at or article.created_at
     published_at = publication_date.isoformat()
     updated_at = (article.updated_at or publication_date).isoformat()

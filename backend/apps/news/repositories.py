@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from hashlib import sha1
 
 from django.db.models import QuerySet
 from django.utils.text import slugify
 
 from .models import Article, Author, Category, Source, Tag
+from .slug_utils import unique_article_slug
 
 
 @dataclass
@@ -77,9 +77,7 @@ class ArticleRepository:
     def upsert_original(payload: NormalizedArticle) -> tuple[Article, bool]:
         category, _ = Category.objects.get_or_create(name=payload.category)
         author = Author.objects.filter(slug="maria-nicholson").first()
-        base_slug = slugify(payload.title)[:240] or "article"
-        unique_suffix = sha1(payload.source_url.encode("utf-8")).hexdigest()[:10]
-        unique_slug = f"{base_slug}-{unique_suffix}"[:300]
+        unique_slug = unique_article_slug(payload.title)
         summary = ArticleRepository._build_summary(payload.content, payload.title)
         article, created = Article.objects.get_or_create(
             source_url=payload.source_url,

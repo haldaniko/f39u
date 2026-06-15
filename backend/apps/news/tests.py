@@ -6,7 +6,7 @@ from xml.etree import ElementTree
 from django.test import SimpleTestCase, TestCase
 from django.utils import timezone
 
-from .models import Article, Author, Category, Tag
+from .models import Article, ArticleSlugRedirect, Author, Category, Tag
 from .seo_views import SEO_BLOCK_PATTERN, _seo_head
 
 
@@ -79,6 +79,64 @@ class ArticleModelTests(TestCase):
             category=category,
         )
         self.assertTrue(article.slug)
+
+    def test_article_slug_is_readable_and_uses_numeric_collision_suffix(self):
+        category = Category.objects.create(name="Business")
+        first = Article.objects.create(
+            title="Elon Musk Net Worth 2026",
+            original_title="Elon Musk Net Worth 2026",
+            original_content="content",
+            source_name="Unit Test",
+            source_url="https://example.com/news/slug-1",
+            category=category,
+        )
+        second = Article.objects.create(
+            title="Elon Musk Net Worth 2026",
+            original_title="Elon Musk Net Worth 2026",
+            original_content="content",
+            source_name="Unit Test",
+            source_url="https://example.com/news/slug-2",
+            category=category,
+        )
+
+        self.assertEqual(first.slug, "elon-musk-net-worth-2026")
+        self.assertEqual(second.slug, "elon-musk-net-worth-2026-2")
+
+    def test_article_slug_transliterates_non_latin_title(self):
+        category = Category.objects.create(name="World")
+        article = Article.objects.create(
+            title="Зеленски предложил встречу",
+            original_title="Зеленски предложил встречу",
+            original_content="content",
+            source_name="Unit Test",
+            source_url="https://example.com/news/transliterated-slug",
+            category=category,
+        )
+
+        self.assertEqual(article.slug, "zelenski-predlozhil-vstrechu")
+
+    def test_new_article_does_not_reuse_reserved_legacy_slug(self):
+        category = Category.objects.create(name="Reserved Slug")
+        existing = Article.objects.create(
+            title="Existing Story",
+            original_title="Existing Story",
+            original_content="content",
+            source_name="Unit Test",
+            source_url="https://example.com/news/reserved-existing",
+            category=category,
+        )
+        ArticleSlugRedirect.objects.create(old_slug="reserved-news-story", article=existing)
+
+        article = Article.objects.create(
+            title="Reserved News Story",
+            original_title="Reserved News Story",
+            original_content="content",
+            source_name="Unit Test",
+            source_url="https://example.com/news/reserved-new",
+            category=category,
+        )
+
+        self.assertEqual(article.slug, "reserved-news-story-2")
 
     def test_health_endpoint(self):
         response = self.client.get("/api/health/")
@@ -164,6 +222,28 @@ class ArticleSchemaViewTests(TestCase):
         self.assertIn(f"By {author.name}", rendered)
         self.assertIn(f'href="/author/{author.slug}"', rendered)
         self.assertNotIn('<div id="root"></div>', rendered)
+
+    def test_legacy_article_slug_permanently_redirects_to_clean_url(self):
+        category = Category.objects.create(name="Technology Redirect")
+        article = Article.objects.create(
+            title="Elon Musk Net Worth 2026",
+            original_title="Elon Musk Net Worth 2026",
+            original_content="content",
+            source_name="Unit Test",
+            source_url="https://example.com/news/legacy-redirect",
+            category=category,
+            status=Article.Status.PUBLISHED,
+            published_at=timezone.now(),
+        )
+        ArticleSlugRedirect.objects.create(
+            old_slug="who-is-elon-musk-61e76fda4b",
+            article=article,
+        )
+
+        response = self.client.get("/article/who-is-elon-musk-61e76fda4b")
+
+        self.assertEqual(response.status_code, 301)
+        self.assertEqual(response["Location"], f"/article/{article.slug}")
 
 
 class AuthorPageTests(TestCase):

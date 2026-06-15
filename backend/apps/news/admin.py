@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Article, Author, Category, Source, Tag
+from .models import Article, ArticleSlugRedirect, Author, Category, Source, Tag
 from .services import NewsIngestionService
 
 
@@ -18,6 +18,13 @@ class ArticleAdmin(admin.ModelAdmin):
     @admin.action(description="Reject selected articles")
     def reject_articles(self, request, queryset):
         queryset.update(status=Article.Status.REJECTED)
+
+
+@admin.register(ArticleSlugRedirect)
+class ArticleSlugRedirectAdmin(admin.ModelAdmin):
+    list_display = ("old_slug", "article", "created_at")
+    search_fields = ("old_slug", "article__title", "article__slug")
+    readonly_fields = ("old_slug", "article", "created_at")
 
 
 @admin.register(Author)

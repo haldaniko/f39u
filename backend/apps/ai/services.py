@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from apps.news.models import Article, Tag
+from apps.news.models import Article, ArticleSlugRedirect, Tag
+from apps.news.slug_utils import unique_article_slug
 from django.utils import timezone
 from django.utils.text import slugify
 
@@ -19,6 +20,13 @@ class RewriteService:
             article.summary = str(result["summary"])
             article.seo_description = str(result["seo_description"])
             article.title = article.rewritten_title
+            new_slug = unique_article_slug(article.title, exclude_pk=article.pk)
+            if article.slug != new_slug:
+                ArticleSlugRedirect.objects.get_or_create(
+                    old_slug=article.slug,
+                    defaults={"article": article},
+                )
+                article.slug = new_slug
             article.status = Article.Status.PUBLISHED
             if not article.published_at:
                 article.published_at = timezone.now()
@@ -29,6 +37,7 @@ class RewriteService:
                 "summary",
                 "seo_description",
                 "title",
+                "slug",
                 "status",
                 "published_at",
                 "updated_at",
