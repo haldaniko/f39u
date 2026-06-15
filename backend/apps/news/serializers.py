@@ -49,6 +49,8 @@ class ArticleDetailSerializer(serializers.ModelSerializer):
             "source_name",
             "source_url",
             "published_at",
+            "created_at",
+            "updated_at",
             "category",
             "tags",
         ]

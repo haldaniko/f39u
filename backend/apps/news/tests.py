@@ -1,6 +1,11 @@
-from django.test import SimpleTestCase, TestCase
+import json
+import re
+from unittest.mock import Mock, patch
 
-from .models import Article, Category
+from django.test import SimpleTestCase, TestCase
+from django.utils import timezone
+
+from .models import Article, Category, Tag
 from .seo_views import SEO_BLOCK_PATTERN, _seo_head
 
 
@@ -20,6 +25,16 @@ class SeoHeadTests(SimpleTestCase):
             image="https://images.example.com/story.jpg",
             page_type="article",
             published_at="2026-06-15T12:00:00+00:00",
+            structured_data={
+                "@context": "https://schema.org",
+                "@type": "NewsArticle",
+                "headline": 'Markets & "Technology"',
+                "datePublished": "2026-06-15T12:00:00+00:00",
+                "author": {
+                    "@type": "Organization",
+                    "name": "Future Xclusive News",
+                },
+            },
         )
 
         rendered = SEO_BLOCK_PATTERN.sub(seo_head, index_html, count=1)
@@ -30,6 +45,16 @@ class SeoHeadTests(SimpleTestCase):
         self.assertIn('property="og:type" content="article"', rendered)
         self.assertIn('property="article:published_time"', rendered)
         self.assertIn('rel="canonical" href="https://fxlfm.com/article/markets-technology"', rendered)
+        schema_match = re.search(
+            r'<script type="application/ld\+json"[^>]*>(.*?)</script>',
+            rendered,
+        )
+        self.assertIsNotNone(schema_match)
+        schema = json.loads(schema_match.group(1))
+        self.assertEqual(schema["@type"], "NewsArticle")
+        self.assertEqual(schema["headline"], 'Markets & "Technology"')
+        self.assertEqual(schema["datePublished"], "2026-06-15T12:00:00+00:00")
+        self.assertEqual(schema["author"]["name"], "Future Xclusive News")
 
     def test_long_title_keeps_brand_suffix(self):
         seo_head = _seo_head(
@@ -53,3 +78,57 @@ class ArticleModelTests(TestCase):
             category=category,
         )
         self.assertTrue(article.slug)
+
+
+class ArticleSchemaViewTests(TestCase):
+    @patch("apps.news.seo_views.requests.get")
+    def test_article_html_contains_complete_news_article_schema(self, mock_get):
+        frontend_response = Mock()
+        frontend_response.text = """
+            <html><head>
+              <meta name="seo-head-start" content="" />
+              <title>Default title</title>
+              <meta name="seo-head-end" content="" />
+            </head><body><div id="root"></div></body></html>
+        """
+        frontend_response.raise_for_status.return_value = None
+        mock_get.return_value = frontend_response
+
+        category = Category.objects.create(name="Technology")
+        tag = Tag.objects.create(name="Artificial Intelligence")
+        published_at = timezone.now()
+        article = Article.objects.create(
+            title="AI Changes the Technology Industry",
+            original_title="AI Changes the Technology Industry",
+            original_content="Original content",
+            rewritten_content="Rewritten content",
+            summary="A detailed report about changes in the technology industry.",
+            seo_description="How AI is changing the technology industry.",
+            source_name="Unit Test",
+            source_url="https://example.com/news/schema-test",
+            image_url="https://images.example.com/ai-news.jpg",
+            category=category,
+            status=Article.Status.PUBLISHED,
+            published_at=published_at,
+        )
+        article.tags.add(tag)
+
+        response = self.client.get(f"/article/{article.slug}")
+
+        self.assertEqual(response.status_code, 200)
+        rendered = response.content.decode()
+        schema_match = re.search(
+            r'<script type="application/ld\+json"[^>]*>(.*?)</script>',
+            rendered,
+        )
+        self.assertIsNotNone(schema_match)
+        schema = json.loads(schema_match.group(1))
+        self.assertEqual(schema["@context"], "https://schema.org")
+        self.assertEqual(schema["@type"], "NewsArticle")
+        self.assertEqual(schema["headline"], article.title)
+        self.assertEqual(schema["datePublished"], published_at.isoformat())
+        self.assertEqual(schema["author"]["name"], "Future Xclusive News")
+        self.assertEqual(schema["mainEntityOfPage"]["@id"], f"https://fxlfm.com/article/{article.slug}")
+        self.assertEqual(schema["image"], [article.image_url])
+        self.assertEqual(schema["articleSection"], category.name)
+        self.assertEqual(schema["keywords"], tag.name)

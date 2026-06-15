@@ -1,7 +1,7 @@
 import { Link, useParams } from "react-router-dom";
 
 import PageSkeleton from "../components/PageSkeleton";
-import Seo, { withBrand } from "../components/Seo";
+import Seo, { absoluteUrl, withBrand } from "../components/Seo";
 import { useArticle, useTrending } from "../hooks/useNewsQuery";
 import { estimateReadingTime, formatDate } from "../utils/formatters";
 
@@ -37,6 +37,37 @@ export default function ArticlePage() {
     );
   }
 
+  const articleUrl = absoluteUrl(`/article/${article.slug}`);
+  const publicationDate = article.published_at || article.created_at;
+  const modifiedDate = article.updated_at || publicationDate;
+  const newsArticleSchema = {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    headline: article.title,
+    description: article.seo_description || article.summary || article.title,
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": articleUrl,
+    },
+    datePublished: publicationDate,
+    dateModified: modifiedDate,
+    author: {
+      "@type": "Organization",
+      name: "Future Xclusive News",
+      url: absoluteUrl("/"),
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "Future Xclusive News",
+      url: absoluteUrl("/"),
+    },
+    ...(article.image_url ? { image: [absoluteUrl(article.image_url)] } : {}),
+    ...(article.category?.name ? { articleSection: article.category.name } : {}),
+    ...((article.tags || []).length
+      ? { keywords: article.tags.map((tag) => tag.name).join(", ") }
+      : {}),
+  };
+
   return (
     <>
       <Seo
@@ -45,7 +76,8 @@ export default function ArticlePage() {
         path={`/article/${article.slug}`}
         image={article.image_url}
         type="article"
-        publishedAt={article.published_at}
+        publishedAt={publicationDate}
+        structuredData={newsArticleSchema}
       />
       <article className="max-w-4xl mx-auto">
         <img
@@ -56,7 +88,8 @@ export default function ArticlePage() {
         <p className="font-ui mt-5 text-xs uppercase tracking-[0.24em] text-brand-700 dark:text-brand-300">{article.source_name}</p>
         <h1 className="font-display text-4xl md:text-5xl mt-3">{article.title}</h1>
         <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-slate-600 dark:text-slate-300 font-ui">
-          <span>{formatDate(article.published_at)}</span>
+          <span>By Future Xclusive News</span>
+          <span>{formatDate(publicationDate)}</span>
           <span>{estimateReadingTime(article.rewritten_content)}</span>
         </div>
         <p className="mt-4 text-xl text-slate-700 dark:text-slate-300">{article.summary}</p>

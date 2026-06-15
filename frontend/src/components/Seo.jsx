@@ -35,7 +35,7 @@ function truncateTitle(value) {
   return `${truncate(unbrandedTitle, 70 - brandSuffix.length)}${brandSuffix}`;
 }
 
-function absoluteUrl(value) {
+export function absoluteUrl(value) {
   if (!value) {
     return "";
   }
@@ -74,6 +74,25 @@ function removeMeta(selector) {
   document.head.querySelector(selector)?.remove();
 }
 
+function setStructuredData(structuredData) {
+  const selector = 'script[data-seo-structured-data="true"]';
+  let element = document.head.querySelector(selector);
+
+  if (!structuredData) {
+    element?.remove();
+    return;
+  }
+
+  if (!element) {
+    element = document.createElement("script");
+    element.type = "application/ld+json";
+    element.dataset.seoStructuredData = "true";
+    document.head.appendChild(element);
+  }
+
+  element.textContent = JSON.stringify(structuredData);
+}
+
 export default function Seo({
   title,
   description,
@@ -81,6 +100,7 @@ export default function Seo({
   image,
   type = "website",
   publishedAt,
+  structuredData,
   noindex = false,
 }) {
   useEffect(() => {
@@ -127,7 +147,9 @@ export default function Seo({
     } else {
       removeMeta('meta[property="article:published_time"]');
     }
-  }, [description, image, noindex, path, publishedAt, title, type]);
+
+    setStructuredData(structuredData);
+  }, [description, image, noindex, path, publishedAt, structuredData, title, type]);
 
   return null;
 }

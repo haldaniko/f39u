@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import re
 from html import escape
@@ -51,6 +52,11 @@ def _absolute_url(value: str | None) -> str:
     return urljoin(f"{SITE_URL}/", value or "")
 
 
+def _json_ld(data: dict[str, object]) -> str:
+    payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+    return payload.replace("<", "\\u003c")
+
+
 def _seo_head(
     *,
     title: str,
@@ -59,6 +65,7 @@ def _seo_head(
     image: str = "",
     page_type: str = "website",
     published_at: str = "",
+    structured_data: dict[str, object] | None = None,
     noindex: bool = False,
 ) -> str:
     page_title = _title(title)
@@ -99,6 +106,11 @@ def _seo_head(
         tags.append(
             f'<meta property="article:published_time" content="{escape(published_at, quote=True)}">'
         )
+    if structured_data:
+        tags.append(
+            '<script type="application/ld+json" data-seo-structured-data="true">'
+            f"{_json_ld(structured_data)}</script>"
+        )
 
     tags.append(SEO_END)
     return "\n    ".join(tags)
@@ -123,10 +135,45 @@ def _spa_shell(seo_head: str) -> HttpResponse:
 
 def article_page(request: HttpRequest, slug: str) -> HttpResponse:
     article = get_object_or_404(
-        Article.objects.filter(status=Article.Status.PUBLISHED),
+        Article.objects.filter(status=Article.Status.PUBLISHED)
+        .select_related("category")
+        .prefetch_related("tags"),
         slug=slug,
     )
-    published_at = article.published_at.isoformat() if article.published_at else ""
+    publication_date = article.published_at or article.created_at
+    published_at = publication_date.isoformat()
+    updated_at = (article.updated_at or publication_date).isoformat()
+    article_url = _absolute_url(f"/article/{article.slug}")
+    structured_data = {
+        "@context": "https://schema.org",
+        "@type": "NewsArticle",
+        "headline": article.title,
+        "description": _clean_text(article.seo_description or article.summary or article.title),
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": article_url,
+        },
+        "datePublished": published_at,
+        "dateModified": updated_at,
+        "author": {
+            "@type": "Organization",
+            "name": "Future Xclusive News",
+            "url": _absolute_url("/"),
+        },
+        "publisher": {
+            "@type": "Organization",
+            "name": "Future Xclusive News",
+            "url": _absolute_url("/"),
+        },
+    }
+    if article.image_url:
+        structured_data["image"] = [_absolute_url(article.image_url)]
+    if article.category:
+        structured_data["articleSection"] = article.category.name
+    keywords = [tag.name for tag in article.tags.all()]
+    if keywords:
+        structured_data["keywords"] = ", ".join(keywords)
+
     return _spa_shell(
         _seo_head(
             title=article.title,
@@ -135,6 +182,7 @@ def article_page(request: HttpRequest, slug: str) -> HttpResponse:
             image=article.image_url,
             page_type="article",
             published_at=published_at,
+            structured_data=structured_data,
         )
     )
 
