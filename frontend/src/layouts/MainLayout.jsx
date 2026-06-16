@@ -37,7 +37,10 @@ export default function MainLayout({ children }) {
         <div className="mx-auto max-w-7xl px-4 py-8 text-sm text-slate-600 dark:text-slate-300">
           <p className="font-ui">Future Xclusive Local and Foreign Media • Independent global news desk.</p>
           <p className="mt-1">© {new Date().getFullYear()} Future Xclusive Local and Foreign Media</p>
-          <Link to="/about" className="text-brand-700 dark:text-brand-300">Learn more</Link>
+          <div className="mt-2 flex gap-4">
+            <Link to="/about" className="text-brand-700 dark:text-brand-300">Learn more</Link>
+            <Link to="/admin" className="text-slate-400 hover:text-brand-700 dark:hover:text-brand-300">Staff login</Link>
+          </div>
         </div>
       </footer>
     </div>

@@ -14,6 +14,7 @@ def robots_txt(request) -> HttpResponse:
             "User-agent: *",
             "Allow: /",
             "Disallow: /admin/",
+            "Disallow: /django-admin/",
             "Disallow: /api/",
             f"Sitemap: {SITE_URL}/sitemap.xml",
             "",

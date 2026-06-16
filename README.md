@@ -50,6 +50,13 @@ Production-oriented full-stack news portal with automated aggregation, AI rewrit
   - Admin stats endpoint:
     - `/api/admin/statistics/`
 
+## Frontend Newsroom
+
+- Editorial dashboard: `/admin`
+- Create a staff account: `docker compose exec backend python manage.py createsuperuser`
+- Staff-only article CRUD API: `/api/admin/articles/`
+- The original Django admin remains available at `/django-admin/` for system maintenance.
+
 ## Scheduled Jobs (Celery)
 
 - Every 15 min: `fetch_latest_news_task`
@@ -82,7 +89,8 @@ Production-oriented full-stack news portal with automated aggregation, AI rewrit
 4. Services:
    - Frontend: `http://localhost:5173`
    - Backend API: `http://localhost:8000/api`
-   - Admin: `http://localhost:8000/admin`
+   - Frontend newsroom: `http://localhost:5173/admin`
+   - Django system admin: `http://localhost:8000/django-admin/`
 
 ## Production Start
 

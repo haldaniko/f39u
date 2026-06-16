@@ -7,12 +7,13 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.viewsets import ReadOnlyModelViewSet
+from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 from .models import Article, Author, Category, Tag
 from .serializers import (
     ArticleDetailSerializer,
     ArticleListSerializer,
+    AdminArticleSerializer,
     AuthorDetailSerializer,
     CategorySerializer,
     TagSerializer,
@@ -87,3 +88,36 @@ class TrendingView(APIView):
     def get(self, request):
         queryset = NewsQueryService.trending(limit=10)
         return Response(ArticleListSerializer(queryset, many=True).data)
+
+
+class AdminArticleViewSet(ModelViewSet):
+    serializer_class = AdminArticleSerializer
+    permission_classes = [permissions.IsAdminUser]
+    search_fields = ["title", "summary", "source_name", "slug"]
+    ordering_fields = ["created_at", "updated_at", "published_at", "title"]
+    ordering = ["-updated_at"]
+    filterset_fields = ["status", "category", "author"]
+
+    def get_queryset(self):
+        return (
+            Article.objects.all()
+            .select_related("category", "author")
+            .prefetch_related("tags")
+        )
+
+
+class AdminArticleOptionsView(APIView):
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request):
+        return Response(
+            {
+                "statuses": [
+                    {"value": value, "label": label}
+                    for value, label in Article.Status.choices
+                ],
+                "categories": list(Category.objects.order_by("name").values("id", "name", "slug")),
+                "authors": list(Author.objects.order_by("name").values("id", "name", "slug")),
+                "tags": list(Tag.objects.order_by("name").values("id", "name", "slug")),
+            }
+        )

@@ -11,6 +11,7 @@ const CategoryPage = lazy(() => import("./pages/CategoryPage"));
 const SearchPage = lazy(() => import("./pages/SearchPage"));
 const AboutPage = lazy(() => import("./pages/AboutPage"));
 const ContactPage = lazy(() => import("./pages/ContactPage"));
+const AdminPage = lazy(() => import("./admin/AdminPage"));
 
 function AnalyticsTracker() {
   const location = useLocation();
@@ -27,6 +28,16 @@ function AnalyticsTracker() {
 }
 
 export default function App() {
+  const location = useLocation();
+
+  if (location.pathname.startsWith("/admin")) {
+    return (
+      <Suspense fallback={<PageSkeleton />}>
+        <AdminPage />
+      </Suspense>
+    );
+  }
+
   return (
     <MainLayout>
       <Suspense fallback={<PageSkeleton />}>

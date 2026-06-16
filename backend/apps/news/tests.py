@@ -3,11 +3,100 @@ import re
 from unittest.mock import Mock, patch
 from xml.etree import ElementTree
 
+from django.contrib.auth.models import User
 from django.test import SimpleTestCase, TestCase
 from django.utils import timezone
+from rest_framework.test import APIClient
 
 from .models import Article, ArticleSlugRedirect, Author, Category, Tag
 from .seo_views import SEO_BLOCK_PATTERN, _seo_head
+
+
+class FrontendAdminApiTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.staff = User.objects.create_user(
+            username="editor",
+            password="strong-test-password",
+            is_staff=True,
+        )
+        self.regular_user = User.objects.create_user(
+            username="reader",
+            password="strong-test-password",
+        )
+        self.category = Category.objects.create(name="Editorial")
+        self.author = Author.objects.get(slug="maria-nicholson")
+        self.tag = Tag.objects.create(name="Exclusive")
+
+    def authenticate_staff(self):
+        response = self.client.post(
+            "/api/auth/login/",
+            {"username": self.staff.username, "password": "strong-test-password"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {response.data['access']}")
+
+    def test_admin_endpoints_require_staff_access(self):
+        anonymous_response = self.client.get("/api/admin/articles/")
+        regular_login = self.client.post(
+            "/api/auth/login/",
+            {"username": self.regular_user.username, "password": "strong-test-password"},
+            format="json",
+        )
+
+        self.assertEqual(anonymous_response.status_code, 401)
+        self.assertEqual(regular_login.status_code, 400)
+
+    def test_staff_can_create_publish_update_and_delete_article(self):
+        self.authenticate_staff()
+        create_response = self.client.post(
+            "/api/admin/articles/",
+            {
+                "title": "Original Reporting from the FXLFM Newsroom",
+                "summary": "A concise editorial summary.",
+                "rewritten_content": "First paragraph.\n\nSecond paragraph.",
+                "seo_description": "Original reporting and analysis from the FXLFM newsroom.",
+                "status": Article.Status.PUBLISHED,
+                "category_id": self.category.pk,
+                "author_id": self.author.pk,
+                "tag_ids": [self.tag.pk],
+            },
+            format="json",
+        )
+
+        self.assertEqual(create_response.status_code, 201, create_response.data)
+        article = Article.objects.get(pk=create_response.data["id"])
+        self.assertEqual(article.original_title, article.title)
+        self.assertEqual(article.original_content, article.rewritten_content)
+        self.assertEqual(article.source_name, "FXLFM Editorial")
+        self.assertTrue(article.source_url.startswith("https://fxlfm.com/editorial/"))
+        self.assertIsNotNone(article.published_at)
+        self.assertEqual(list(article.tags.all()), [self.tag])
+
+        update_response = self.client.patch(
+            f"/api/admin/articles/{article.pk}/",
+            {"summary": "An updated summary."},
+            format="json",
+        )
+        self.assertEqual(update_response.status_code, 200)
+        article.refresh_from_db()
+        self.assertEqual(article.summary, "An updated summary.")
+        self.assertEqual(article.source_name, "FXLFM Editorial")
+
+        delete_response = self.client.delete(f"/api/admin/articles/{article.pk}/")
+        self.assertEqual(delete_response.status_code, 204)
+        self.assertFalse(Article.objects.filter(pk=article.pk).exists())
+
+    def test_staff_can_load_editor_options(self):
+        self.authenticate_staff()
+        response = self.client.get("/api/admin/options/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn({"value": "published", "label": "Published"}, response.data["statuses"])
+        self.assertEqual(response.data["categories"][0]["id"], self.category.pk)
+        self.assertEqual(response.data["authors"][0]["id"], self.author.pk)
+        self.assertEqual(response.data["tags"][0]["id"], self.tag.pk)
 
 
 class SeoHeadTests(SimpleTestCase):
