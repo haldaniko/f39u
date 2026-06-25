@@ -9,6 +9,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from .models import Article, ArticleSlugRedirect, Author, Category, Tag
+from .providers import NewsProvider, NormalizedArticle, RSSProvider
 from .seo_views import SEO_BLOCK_PATTERN, _seo_head
 
 
@@ -232,6 +233,61 @@ class ArticleModelTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"status": "ok"})
+
+
+class ProviderQualityGateTests(TestCase):
+    def test_bulgarian_thumbnail_url_upgrades_to_large_article_image(self):
+        thumbnail = (
+            "https://www.investor.bg/media/files/resized/article/200x113/ef7/"
+            "b7f9bb1c363e64fc88b8e4ddc9f25ef7-459333143.jpg"
+        )
+
+        self.assertIn("/1280x720/", RSSProvider._upgrade_image_url(thumbnail))
+
+    def test_save_articles_skips_empty_content_and_low_resolution_images(self):
+        class FakeProvider(NewsProvider):
+            def fetch_articles(self):
+                return []
+
+            def normalize_data(self, raw_article):
+                return NormalizedArticle(**raw_article)
+
+        provider = FakeProvider()
+        long_content = " ".join(["Detailed source reporting with enough facts for rewriting."] * 40)
+        changed = provider.save_articles(
+            [
+                {
+                    "title": "Empty Source",
+                    "content": "",
+                    "source_name": "Example",
+                    "source_url": "https://example.com/empty-source",
+                    "image_url": "https://images.example.com/1280x720/empty.jpg",
+                    "category": "World",
+                    "tags": ["rss"],
+                },
+                {
+                    "title": "Tiny Image",
+                    "content": long_content,
+                    "source_name": "Example",
+                    "source_url": "https://example.com/tiny-image",
+                    "image_url": "https://images.example.com/200x113/tiny.jpg",
+                    "category": "World",
+                    "tags": ["rss"],
+                },
+                {
+                    "title": "Publishable Story",
+                    "content": long_content,
+                    "source_name": "Example",
+                    "source_url": "https://example.com/publishable",
+                    "image_url": "https://images.example.com/1280x720/publishable.jpg",
+                    "category": "World",
+                    "tags": ["rss"],
+                },
+            ]
+        )
+
+        self.assertEqual(changed, 1)
+        self.assertEqual(Article.objects.get().title, "Publishable Story")
 
 
 class ArticleSchemaViewTests(TestCase):

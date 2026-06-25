@@ -3,8 +3,10 @@ from __future__ import annotations
 import html
 import os
 import re
+import struct
 from abc import ABC, abstractmethod
 from typing import Any
+from urllib.parse import urljoin
 
 import feedparser
 import requests
@@ -27,17 +29,154 @@ class NewsProvider(ABC):
         raise NotImplementedError
 
     @staticmethod
-    def _has_required_image(normalized: NormalizedArticle) -> bool:
-        image_url = (normalized.image_url or "").strip()
+    def _env_int(name: str, default: int) -> int:
+        raw = os.getenv(name)
+        if not raw:
+            return default
+        try:
+            return int(raw)
+        except ValueError:
+            return default
+
+    @classmethod
+    def _min_content_chars(cls) -> int:
+        return cls._env_int("ARTICLE_MIN_SOURCE_CONTENT_CHARS", 300)
+
+    @classmethod
+    def _min_image_width(cls) -> int:
+        return cls._env_int("ARTICLE_MIN_IMAGE_WIDTH", 800)
+
+    @classmethod
+    def _min_image_height(cls) -> int:
+        return cls._env_int("ARTICLE_MIN_IMAGE_HEIGHT", 450)
+
+    @classmethod
+    def _has_required_content(cls, normalized: NormalizedArticle) -> bool:
+        return len((normalized.content or "").strip()) >= cls._min_content_chars()
+
+    @classmethod
+    def _image_dimensions_from_url(cls, url: str) -> tuple[int | None, int | None]:
+        value = (url or "").lower()
+        match = re.search(r"/(\d{2,5})x(\d{2,5})(?:/|[._-])", value)
+        if match:
+            return int(match.group(1)), int(match.group(2))
+
+        width_match = re.search(r"[?&](?:w|width)=(\d{2,5})\b", value)
+        height_match = re.search(r"[?&](?:h|height)=(\d{2,5})\b", value)
+        width = int(width_match.group(1)) if width_match else None
+        height = int(height_match.group(1)) if height_match else None
+        return width, height
+
+    @staticmethod
+    def _parse_image_dimensions(image_bytes: bytes) -> tuple[int | None, int | None]:
+        if image_bytes.startswith(b"\x89PNG\r\n\x1a\n") and len(image_bytes) >= 24:
+            return struct.unpack(">II", image_bytes[16:24])
+
+        if image_bytes.startswith((b"GIF87a", b"GIF89a")) and len(image_bytes) >= 10:
+            return struct.unpack("<HH", image_bytes[6:10])
+
+        if image_bytes.startswith(b"\xff\xd8"):
+            index = 2
+            length = len(image_bytes)
+            while index + 9 < length:
+                if image_bytes[index] != 0xFF:
+                    index += 1
+                    continue
+                marker = image_bytes[index + 1]
+                index += 2
+                if marker in {0xD8, 0xD9}:
+                    continue
+                if index + 2 > length:
+                    break
+                segment_length = int.from_bytes(image_bytes[index : index + 2], "big")
+                if segment_length < 2:
+                    break
+                if marker in {
+                    0xC0,
+                    0xC1,
+                    0xC2,
+                    0xC3,
+                    0xC5,
+                    0xC6,
+                    0xC7,
+                    0xC9,
+                    0xCA,
+                    0xCB,
+                    0xCD,
+                    0xCE,
+                    0xCF,
+                } and index + 7 <= length:
+                    height = int.from_bytes(image_bytes[index + 3 : index + 5], "big")
+                    width = int.from_bytes(image_bytes[index + 5 : index + 7], "big")
+                    return width, height
+                index += segment_length
+
+        if image_bytes.startswith(b"RIFF") and image_bytes[8:12] == b"WEBP" and len(image_bytes) >= 30:
+            chunk = image_bytes[12:16]
+            if chunk == b"VP8X":
+                width = 1 + int.from_bytes(image_bytes[24:27], "little")
+                height = 1 + int.from_bytes(image_bytes[27:30], "little")
+                return width, height
+
+        return None, None
+
+    @classmethod
+    def _probe_image_dimensions(cls, url: str) -> tuple[int | None, int | None]:
+        fetch_url = f"https:{url}" if url.startswith("//") else url
+        try:
+            response = requests.get(
+                fetch_url,
+                headers={
+                    "User-Agent": "Mozilla/5.0 (compatible; FutureXclusiveBot/1.0; +https://localhost)",
+                    "Range": "bytes=0-65535",
+                },
+                timeout=8,
+                stream=True,
+            )
+            response.raise_for_status()
+        except requests.RequestException:
+            return None, None
+
+        chunks: list[bytes] = []
+        total = 0
+        for chunk in response.iter_content(chunk_size=8192):
+            if not chunk:
+                continue
+            chunks.append(chunk)
+            total += len(chunk)
+            if total >= 65536:
+                break
+        return cls._parse_image_dimensions(b"".join(chunks))
+
+    @classmethod
+    def _is_usable_image_url(cls, image_url: str) -> bool:
+        image_url = (image_url or "").strip()
         if not image_url:
             return False
         # Accept absolute HTTP(S) and protocol-relative image URLs only.
-        return image_url.startswith("http://") or image_url.startswith("https://") or image_url.startswith("//")
+        if not (image_url.startswith("http://") or image_url.startswith("https://") or image_url.startswith("//")):
+            return False
+
+        width, height = cls._image_dimensions_from_url(image_url)
+        if width is None or height is None:
+            probed_width, probed_height = cls._probe_image_dimensions(image_url)
+            width = width or probed_width
+            height = height or probed_height
+
+        if width is None or height is None:
+            return False
+        return width >= cls._min_image_width() and height >= cls._min_image_height()
+
+    @classmethod
+    def _has_required_image(cls, normalized: NormalizedArticle) -> bool:
+        return cls._is_usable_image_url(normalized.image_url)
 
     def save_articles(self, raw_articles: list[dict[str, Any]]) -> int:
         changed = 0
         for item in raw_articles:
             normalized = self.normalize_data(item)
+            if not self._has_required_content(normalized):
+                continue
             if not self._has_required_image(normalized):
                 continue
             _, was_changed = ArticleRepository.upsert_original(normalized)
@@ -260,9 +399,10 @@ class RSSProvider(NewsProvider):
         ):
             match = re.search(pattern, html_doc, flags=re.IGNORECASE)
             if match and match.group(1).strip():
-                return match.group(1).strip()
+                return urljoin(url, match.group(1).strip())
 
-        return self._extract_first_image_from_html(html_doc)
+        first_image = self._extract_first_image_from_html(html_doc)
+        return urljoin(url, first_image) if first_image else ""
 
     @staticmethod
     def _upgrade_image_url(url: str) -> str:
@@ -273,6 +413,8 @@ class RSSProvider(NewsProvider):
         # BBC RSS frequently exposes tiny thumbnails; switch to larger known variants.
         upgraded = upgraded.replace("/ace/standard/240/", "/ace/standard/1024/")
         upgraded = upgraded.replace("/images/ic/240x135/", "/images/ic/1024x576/")
+        # Investor.bg and Dnes.bg RSS expose 200x113 thumbnails while article metadata has 1280x720.
+        upgraded = re.sub(r"(/media/files/resized/article/)200x113/", r"\g<1>1280x720/", upgraded)
         return upgraded
 
     @staticmethod
@@ -317,9 +459,11 @@ class RSSProvider(NewsProvider):
 
     def fetch_articles(self) -> list[dict[str, Any]]:
         collected: list[dict[str, Any]] = []
-        fulltext_budget = int(os.getenv("RSS_FULLTEXT_FETCH_LIMIT", "80"))
-        image_fetch_budget = int(os.getenv("RSS_IMAGE_FETCH_LIMIT", "40"))
+        fulltext_budget_per_feed = int(os.getenv("RSS_FULLTEXT_FETCH_LIMIT_PER_FEED", "12"))
+        image_fetch_budget_per_feed = int(os.getenv("RSS_IMAGE_FETCH_LIMIT_PER_FEED", "8"))
         for feed_url in self._get_feed_urls():
+            fulltext_budget = fulltext_budget_per_feed
+            image_fetch_budget = image_fetch_budget_per_feed
             parsed = feedparser.parse(feed_url)
             feed_title = parsed.feed.get("title", "RSS")
             for entry in parsed.entries[:30]:
@@ -334,9 +478,11 @@ class RSSProvider(NewsProvider):
                         content = full_text
                     fulltext_budget -= 1
                 content = self._strip_teaser_phrases(content)
-                image = self._extract_image(entry)
-                if not image and image_fetch_budget > 0:
-                    image = self._fetch_image_from_article_page(link)
+                image = self._upgrade_image_url(self._extract_image(entry))
+                if (not image or not self._is_usable_image_url(image)) and image_fetch_budget > 0:
+                    page_image = self._upgrade_image_url(self._fetch_image_from_article_page(link))
+                    if page_image:
+                        image = page_image
                     image_fetch_budget -= 1
                 collected.append(
                     {

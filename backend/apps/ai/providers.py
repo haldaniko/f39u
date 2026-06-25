@@ -31,6 +31,7 @@ class FallbackRewriter(AIRewriter):
             "body": rewritten_body,
             "seo_description": summary[:160],
             "tags": ["news", "analysis"],
+            "_fallback": "true",
         }
 
 
@@ -126,7 +127,7 @@ def _normalize_openrouter_result(payload: dict[str, Any], title: str, content: s
     summary_fallback = content[:220].strip() if content else "No summary available"
 
     rewritten_title = str(payload.get("title") or title)[:300]
-    rewritten_body = _strip_teaser_phrases(str(payload.get("body") or content))
+    rewritten_body = _format_article_body(str(payload.get("body") or content))
     rewritten_summary = _strip_teaser_phrases(str(payload.get("summary") or summary_fallback))
     seo_description = str(payload.get("seo_description") or rewritten_summary[:160])[:320]
 
@@ -145,6 +146,7 @@ def _normalize_openrouter_result(payload: dict[str, Any], title: str, content: s
         "body": rewritten_body,
         "seo_description": seo_description,
         "tags": tags,
+        "_fallback": "false",
     }
 
 
@@ -188,6 +190,27 @@ def _strip_teaser_phrases(text: str) -> str:
     return "\n\n".join(cleaned_lines).strip()
 
 
+def _format_article_body(text: str) -> str:
+    value = _strip_teaser_phrases(text)
+    if not value:
+        return ""
+
+    paragraphs = [paragraph.strip() for paragraph in re.split(r"\n\s*\n+", value) if paragraph.strip()]
+    if len(paragraphs) >= 2:
+        return "\n\n".join(paragraphs)
+
+    sentences = re.split(r"(?<=[.!?])\s+", paragraphs[0] if paragraphs else value)
+    sentences = [sentence.strip() for sentence in sentences if sentence.strip()]
+    if len(sentences) < 6:
+        return value
+
+    grouped = [
+        " ".join(sentences[index : index + 3]).strip()
+        for index in range(0, len(sentences), 3)
+    ]
+    return "\n\n".join(paragraph for paragraph in grouped if paragraph)
+
+
 class OpenAIRewriter(FallbackRewriter):
     pass
 
@@ -207,7 +230,7 @@ class OpenRouterRewriter(FallbackRewriter):
         self.model = os.getenv("OPENROUTER_MODEL", "openai/gpt-4o-mini")
         self.timeout = _env_int("OPENROUTER_TIMEOUT", 45)
         self.max_input_chars = _env_int("OPENROUTER_MAX_INPUT_CHARS", 12000)
-        self.max_output_tokens = _env_int("OPENROUTER_MAX_OUTPUT_TOKENS", 900)
+        self.max_output_tokens = _env_int("OPENROUTER_MAX_OUTPUT_TOKENS", 2200)
         self.temperature = _env_float("OPENROUTER_TEMPERATURE", 0.3)
         self.site_url = os.getenv("OPENROUTER_SITE_URL", "").strip()
         self.app_name = os.getenv("OPENROUTER_APP_NAME", "Future Xclusive Local and Foreign Media")
@@ -225,6 +248,8 @@ class OpenRouterRewriter(FallbackRewriter):
             "title, summary, body, seo_description, tags. "
             "Rules: title <= 300 chars, seo_description <= 320 chars, tags must be an array of short strings. "
             "Detect the source language; if it is not English, translate the final title, summary, body, and seo_description into English. "
+            "Write a fuller article with 5 to 7 concise paragraphs when the provided facts support it. "
+            "Separate each paragraph with a blank line. Do not use markdown headings, bullets, or numbered lists. "
             "Remove teaser phrases like 'Read the full story', 'Read more', 'Continue reading'. "
             "If the source text is partial, expand it into a coherent full article using only the provided facts. "
             "You may add neutral context, transitions, and conclusions, but do not invent events, names, dates, "
