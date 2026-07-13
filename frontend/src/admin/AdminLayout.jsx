@@ -3,9 +3,9 @@ import { NavLink, Outlet } from "react-router-dom";
 import { useAdminAuth } from "./AuthContext";
 
 const navigation = [
-  { to: "/admin", label: "Overview", end: true },
-  { to: "/admin/articles", label: "Articles" },
-  { to: "/admin/articles/new", label: "New article" },
+  { to: "/admin", label: "Обзор", end: true },
+  { to: "/admin/articles", label: "Контент" },
+  { to: "/admin/articles/new", label: "Новая статья" },
 ];
 
 export default function AdminLayout() {
@@ -18,7 +18,7 @@ export default function AdminLayout() {
         <aside className="bg-slate-950 text-white px-5 py-6 lg:fixed lg:inset-y-0 lg:w-[250px]">
           <a href="/" className="block">
             <span className="text-xs uppercase tracking-[0.28em] text-teal-300">FXLFM</span>
-            <span className="block mt-1 text-xl font-semibold">Newsroom</span>
+            <span className="block mt-1 text-xl font-semibold">Админ-панель</span>
           </a>
           <nav className="mt-8 grid grid-cols-3 gap-2 lg:grid-cols-1">
             {navigation.map((item) => (
@@ -40,8 +40,8 @@ export default function AdminLayout() {
             <p className="truncate text-sm font-medium">{displayName}</p>
             <p className="truncate text-xs text-slate-400">{user?.email || "Administrator"}</p>
             <div className="mt-3 flex gap-3 text-xs">
-              <a href="/" className="text-teal-300 hover:text-teal-200">Open site</a>
-              <button type="button" onClick={logout} className="text-slate-400 hover:text-white">Sign out</button>
+              <a href="/" className="text-teal-300 hover:text-teal-200">Открыть сайт</a>
+              <button type="button" onClick={logout} className="text-slate-400 hover:text-white">Выйти</button>
             </div>
           </div>
         </aside>

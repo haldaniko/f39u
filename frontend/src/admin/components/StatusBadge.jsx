@@ -6,8 +6,16 @@ const styles = {
   draft: "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200",
 };
 
+const labels = {
+  published: "Опубликовано",
+  pending_review: "На проверке",
+  rejected: "Отклонено",
+  rewritten: "Переписано",
+  draft: "Черновик",
+};
+
 export function formatStatus(status) {
-  return status?.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()) || "Unknown";
+  return labels[status] || "Неизвестно";
 }
 
 export default function StatusBadge({ status }) {

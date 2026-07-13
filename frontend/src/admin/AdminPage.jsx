@@ -8,6 +8,7 @@ import { AdminAuthProvider, useAdminAuth } from "./AuthContext";
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const AdminArticleList = lazy(() => import("./pages/AdminArticleList"));
 const AdminArticleEditor = lazy(() => import("./pages/AdminArticleEditor"));
+const AdminArticleView = lazy(() => import("./pages/AdminArticleView"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 
 function ProtectedAdmin() {
@@ -26,6 +27,7 @@ function AdminRoutes() {
           <Route index element={<AdminDashboard />} />
           <Route path="articles" element={<AdminArticleList />} />
           <Route path="articles/new" element={<AdminArticleEditor />} />
+          <Route path="articles/:id" element={<AdminArticleView />} />
           <Route path="articles/:id/edit" element={<AdminArticleEditor />} />
         </Route>
         <Route path="*" element={<Navigate to="/admin" replace />} />
