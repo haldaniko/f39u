@@ -22,8 +22,8 @@ function AdminRoutes() {
   return (
     <Suspense fallback={<div className="mx-auto max-w-xl py-20"><PageSkeleton /></div>}>
       <Routes>
-        <Route path="login" element={user ? <Navigate to="/admin" replace /> : <AdminLogin />} />
-        <Route element={<ProtectedAdmin />}>
+        <Route path="/admin/login" element={user ? <Navigate to="/admin" replace /> : <AdminLogin />} />
+        <Route path="/admin" element={<ProtectedAdmin />}>
           <Route index element={<AdminDashboard />} />
           <Route path="articles" element={<AdminArticleList />} />
           <Route path="articles/new" element={<AdminArticleEditor />} />
