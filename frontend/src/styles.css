@@ -77,17 +77,23 @@ body {
   top: max(48px, calc((100vh - min(650px, calc(100vh - 56px))) / 2 + 24px));
   right: max(52px, calc((100vw - min(1320px, calc(100vw - 56px))) / 2 + 24px));
   display: grid;
-  width: 40px;
-  height: 40px;
+  width: 34px;
+  height: 34px;
   place-items: center;
   border: 0;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.045);
   color: #9fa8af;
-  font-family: var(--font-labels);
-  font-size: 28px;
-  line-height: 1;
   cursor: pointer;
+}
+
+.newsletter-popup__close-icon {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
 }
 
 .newsletter-popup__inner {
@@ -99,13 +105,15 @@ body {
   grid-template-columns: 1fr 0.92fr;
   align-items: center;
   gap: 34px;
-  overflow: hidden;
+  overflow: visible;
   border-radius: 18px;
 }
 
 .newsletter-popup__visual {
   position: relative;
   height: 590px;
+  transform: scale(0.88);
+  transform-origin: left top;
 }
 
 .newsletter-popup__orbit {
@@ -116,26 +124,26 @@ body {
 }
 
 .newsletter-popup__orbit--one {
-  left: 42px;
-  top: -34px;
-  width: 580px;
-  height: 580px;
+  left: 36px;
+  top: 0;
+  width: 575px;
+  height: 575px;
   border-color: rgba(198, 145, 107, 0.22);
 }
 
 .newsletter-popup__orbit--two {
-  left: 42px;
-  top: -2px;
-  width: 640px;
+  left: 36px;
+  top: 30px;
+  width: 650px;
   height: 610px;
   border-color: rgba(125, 139, 126, 0.24);
 }
 
 .newsletter-popup__orbit--three {
-  left: 150px;
-  top: 175px;
-  width: 360px;
-  height: 145px;
+  left: 130px;
+  top: 210px;
+  width: 400px;
+  height: 150px;
   border-color: rgba(93, 112, 116, 0.22);
   transform: rotate(18deg);
 }
@@ -143,7 +151,7 @@ body {
 .newsletter-popup__portrait {
   position: absolute;
   left: 184px;
-  top: 120px;
+  top: 154px;
   width: 190px;
   height: 190px;
   border-radius: 50%;
@@ -154,7 +162,7 @@ body {
   position: absolute;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.07);
   color: #d9dddf;
@@ -162,32 +170,31 @@ body {
   font-size: 15px;
   font-weight: 500;
   line-height: 1;
-  padding: 8px 12px;
+  padding: 8px 13px;
   white-space: nowrap;
 }
 
 .newsletter-popup__badge--digest {
-  left: 360px;
-  top: 96px;
+  left: 365px;
+  top: 135px;
 }
 
 .newsletter-popup__badge--readers {
-  left: 42px;
-  top: 248px;
+  left: 38px;
+  top: 285px;
 }
 
 .newsletter-popup__badge--rating {
   left: 355px;
-  top: 330px;
+  top: 372px;
 }
 
 .newsletter-popup__emoji {
-  display: inline-grid;
-  width: 16px;
-  height: 16px;
-  place-items: center;
-  font-size: 13px;
-  line-height: 1;
+  display: block;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  object-fit: contain;
 }
 
 .newsletter-popup__content {
@@ -214,9 +221,9 @@ body {
   margin: 30px auto 0;
   color: #cdd2d4;
   font-family: var(--font-primary);
-  font-size: 26px;
+  font-size: 23px;
   font-weight: 400;
-  line-height: 1.25;
+  line-height: 1.3;
   text-align: center;
 }
 

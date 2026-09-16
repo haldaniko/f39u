@@ -17,7 +17,7 @@ export default function DarkModeToggle() {
 
   return (
     <button
-      className="grid h-9 w-9 place-items-center rounded-full border border-[#60666b] text-white"
+      className="grid h-9 w-9 place-items-center rounded-full border-2 border-[#60666b] text-white"
       onClick={() => setEnabled((v) => !v)}
       type="button"
       aria-label={enabled ? "Switch to light mode" : "Switch to dark mode"}

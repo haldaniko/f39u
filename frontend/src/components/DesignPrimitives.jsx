@@ -243,7 +243,9 @@ export function NewsletterPopup() {
         aria-label="Close newsletter popup"
         onClick={() => setOpen(false)}
       >
-        ×
+        <svg className="newsletter-popup__close-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18" />
+        </svg>
       </button>
 
       <div className="newsletter-popup__inner">
@@ -253,15 +255,15 @@ export function NewsletterPopup() {
           <span className="newsletter-popup__orbit newsletter-popup__orbit--three" />
           <img className="newsletter-popup__portrait" src={newsletterPortrait} alt="" />
           <span className="newsletter-popup__badge newsletter-popup__badge--digest">
-            <span className="newsletter-popup__emoji" aria-hidden="true">🗓️</span>
+            <img className="newsletter-popup__emoji" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f5d3.svg" alt="" aria-hidden="true" />
             Weekly digest
           </span>
           <span className="newsletter-popup__badge newsletter-popup__badge--readers">
-            <span className="newsletter-popup__emoji" aria-hidden="true">🌎</span>
+            <img className="newsletter-popup__emoji" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f30e.svg" alt="" aria-hidden="true" />
             6K+ readers
           </span>
           <span className="newsletter-popup__badge newsletter-popup__badge--rating">
-            <span className="newsletter-popup__emoji" aria-hidden="true">⭐</span>
+            <img className="newsletter-popup__emoji" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/2b50.svg" alt="" aria-hidden="true" />
             4.9
           </span>
         </div>
@@ -288,13 +290,13 @@ export function NewsletterPopup() {
 
 export function SearchControl() {
   return (
-    <form className="hidden w-full max-w-[340px] items-center rounded-full border border-[#60666b] bg-transparent p-1 md:flex">
+    <form className="hidden h-9 w-[300px] items-center rounded-full border-2 border-[#60666b] bg-transparent p-0.5 md:flex lg:w-[340px]">
       <input
         aria-label="Search"
         placeholder="Search..."
-        className="min-w-0 flex-1 bg-transparent px-4 font-ui text-sm text-white outline-none placeholder:text-slate-300"
+        className="min-w-0 flex-1 bg-transparent py-0 pl-4 pr-2 font-ui text-sm text-white outline-none placeholder:text-slate-300"
       />
-      <button type="submit" className="grid h-9 w-9 place-items-center rounded-full border-2 border-amber-400 text-amber-400">
+      <button type="submit" className="grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 border-amber-400 text-amber-400">
         <SearchIcon className="h-4 w-4" />
       </button>
     </form>
@@ -303,7 +305,7 @@ export function SearchControl() {
 
 export function IconCircle({ children, label }) {
   return (
-    <button type="button" aria-label={label} className="grid h-9 w-9 place-items-center rounded-full border border-[#60666b] text-white">
+    <button type="button" aria-label={label} className="grid h-9 w-9 place-items-center rounded-full border-2 border-[#60666b] text-white">
       {children}
     </button>
   );

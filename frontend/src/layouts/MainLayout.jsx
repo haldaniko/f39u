@@ -7,16 +7,18 @@ import Logo from "../components/Logo";
 export default function MainLayout({ children }) {
   return (
     <div id="top" className="min-h-screen">
-      <header className="sticky top-0 z-20 border-b border-[#60666b] bg-[#1d282d]">
+      <header className="sticky top-0 z-20 border-b-2 border-[#60666b] bg-[#1d282d]">
         <div className="mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-5">
           <Logo />
-          <SearchControl />
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex items-center justify-center gap-3">
+            <SearchControl />
             <DarkModeToggle />
             <IconCircle label="Contact">
               <MailIcon className="h-4 w-4" />
             </IconCircle>
-            <Link to="/search" className="grid h-9 w-9 place-items-center rounded-full border border-[#60666b] text-white md:hidden">
+          </div>
+          <div className="flex items-center justify-end gap-2">
+            <Link to="/search" className="grid h-9 w-9 place-items-center rounded-full border-2 border-[#60666b] text-white md:hidden">
               <span className="text-sm">⌕</span>
             </Link>
             <button type="button" className="ml-4 text-white" aria-label="Open menu">
