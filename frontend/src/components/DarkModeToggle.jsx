@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+import { MoonIcon, SunIcon } from "./DesignPrimitives";
+
 export default function DarkModeToggle() {
   const [enabled, setEnabled] = useState(false);
 
@@ -15,11 +17,12 @@ export default function DarkModeToggle() {
 
   return (
     <button
-      className="rounded-full border border-slate-300 dark:border-slate-700 px-3 py-1 text-sm font-ui"
+      className="grid h-9 w-9 place-items-center rounded-full border border-[#60666b] text-white"
       onClick={() => setEnabled((v) => !v)}
       type="button"
+      aria-label={enabled ? "Switch to light mode" : "Switch to dark mode"}
     >
-      {enabled ? "Light" : "Dark"}
+      {enabled ? <SunIcon className="h-4 w-4" /> : <MoonIcon className="h-4 w-4" />}
     </button>
   );
 }

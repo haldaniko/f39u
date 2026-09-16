@@ -1,11 +1,39 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 
-import ArticleCard from "../components/ArticleCard";
+import {
+  BackToTop,
+  CategoryStrip,
+  NewsletterBand,
+  NewsletterPopup,
+  StoryCard,
+  fallbackImage,
+} from "../components/DesignPrimitives";
 import PageSkeleton from "../components/PageSkeleton";
-import SectionHeader from "../components/SectionHeader";
 import Seo from "../components/Seo";
 import { useAuthor, useCategories, useInfiniteNews, useTrending } from "../hooks/useNewsQuery";
+import { estimateReadingTime } from "../utils/formatters";
+
+const fallbackHero = {
+  title: "Art Basel brings fun back to the fair with the element of surprise",
+  summary: "In a surprising turn of events, a rare species of butterfly, previously thought to be extinct, has been spotted in the lush forests of Evergreen Valley.",
+  slug: "search",
+  source_name: "Investor.bg",
+  image_url: fallbackImage,
+  category: { name: "Art", slug: "art" },
+};
+
+const fallbackCard = {
+  ...fallbackHero,
+  image_url: null,
+};
+
+const staticHeroImage = "https://images.unsplash.com/photo-1557683316-973673baf926?auto=format&fit=crop&w=2400&q=80";
+
+function pickStories(articles, trending) {
+  const pool = [...articles, ...trending].filter(Boolean);
+  return Array.from({ length: 14 }, (_, index) => pool[index % Math.max(pool.length, 1)] || fallbackCard);
+}
 
 export default function HomePage() {
   const newsQuery = useInfiniteNews();
@@ -14,17 +42,24 @@ export default function HomePage() {
   const authorQuery = useAuthor("maria-nicholson");
 
   const articles = newsQuery.data?.pages.flatMap((page) => page.results || []) || [];
+  const trending = Array.isArray(trendingQuery.data)
+    ? trendingQuery.data
+    : trendingQuery.data?.results || [];
   const categories = Array.isArray(categoriesQuery.data)
     ? categoriesQuery.data
     : categoriesQuery.data?.results || [];
-  const hero = articles[0];
+  const hero = articles[0] || fallbackHero;
+  const heroHref = articles[0] ? `/article/${hero.slug}` : "/search";
+  const heroReadTime = estimateReadingTime(hero.rewritten_content || hero.summary || hero.title);
+  const stories = pickStories(articles.slice(1), trending);
+  const editor = authorQuery.data && typeof authorQuery.data === "object" ? authorQuery.data : null;
 
   const seo = (
     <Seo
       title="Latest Global News & Breaking Stories | FXLFM"
       description="Read the latest global news, breaking stories and clear reporting across business, technology, politics, science and culture at FXLFM."
       path="/"
-      image={hero?.image_url}
+      image={staticHeroImage}
     />
   );
 
@@ -35,95 +70,129 @@ export default function HomePage() {
   return (
     <>
       {seo}
-      <div className="space-y-10">
-        {hero && (
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="glass rounded-3xl overflow-hidden"
-          >
-            <img
-              src={hero.image_url || "https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&w=1800&q=80"}
-              alt={hero.title}
-              className="w-full h-64 md:h-[420px] object-cover"
-            />
-            <div className="p-6 md:p-8">
-              <p className="font-ui uppercase tracking-[0.2em] text-brand-700 dark:text-brand-200">Hero Story</p>
-              <h1 className="font-display text-4xl md:text-5xl mt-2 max-w-4xl">{hero.title}</h1>
-              <p className="mt-3 text-lg text-slate-700 dark:text-slate-300 max-w-3xl">{hero.summary}</p>
-              <Link to={`/article/${hero.slug}`} className="inline-block mt-6 bg-accent-500 hover:bg-accent-700 text-white px-5 py-3 rounded-full font-ui">
-                Read full story
-              </Link>
+      <div className="space-y-16 pb-4 pt-0">
+        <motion.section
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="home-hero relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen overflow-hidden bg-[#172322] text-white"
+        >
+          <img
+            src={staticHeroImage}
+            alt=""
+            className="absolute inset-0 h-full w-full scale-110 object-cover opacity-70 blur-[1px] saturate-125"
+            aria-hidden="true"
+          />
+          <div className="home-hero-motion absolute inset-0" aria-hidden="true" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#172322]/88 via-[#31523b]/28 to-[#b7e6b2]/18" aria-hidden="true" />
+          <div className="relative mx-auto grid min-h-[590px] max-w-7xl items-center gap-10 px-4 py-20 md:grid-cols-[1fr_420px]">
+            <div className="max-w-2xl">
+              <h1 className="font-display text-5xl font-bold uppercase leading-[0.94] tracking-normal sm:text-6xl lg:text-7xl">
+                Independent Newsroom Platform
+              </h1>
+              <div className="mt-7 h-1 w-16 bg-accent-500" />
+              <p className="mt-5 font-ui text-sm font-bold uppercase tracking-[0.18em] text-white/90">
+                100+ news articles in real time
+              </p>
             </div>
-          </motion.section>
-        )}
 
-        <section>
-        <SectionHeader eyebrow="Live" title="Trending Now" />
-        <div className="news-grid">
-          {(trendingQuery.data || []).slice(0, 4).map((article, i) => (
-            <ArticleCard key={article.slug} article={article} index={i} />
-          ))}
-        </div>
-        </section>
-
-        <section>
-        <SectionHeader eyebrow="Topics" title="Categories" />
-        <div className="flex flex-wrap gap-3">
-          {categories.map((category) => (
             <Link
-              key={category.slug}
-              to={`/category/${category.slug}`}
-              className="glass rounded-full px-4 py-2 font-ui text-sm"
+              to={heroHref}
+              className="group overflow-hidden rounded-lg bg-white text-slate-950 shadow-2xl ring-1 ring-black/5 transition duration-200 hover:-translate-y-1 dark:bg-[#233133] dark:text-white"
             >
-              {category.name}
+              <div className="h-56 bg-slate-200 dark:bg-slate-300">
+                <img
+                  src={hero.image_url || fallbackImage}
+                  alt={hero.title}
+                  className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                />
+              </div>
+              <div className="p-5">
+                <p className="font-ui text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+                  {hero.source_name || "Investor.bg"}
+                </p>
+                <h2 className="mt-3 font-body text-2xl font-semibold leading-tight">{hero.title}</h2>
+                <div className="mt-5 flex items-center justify-between gap-3 font-ui text-[10px] font-bold uppercase tracking-[0.08em]">
+                  <span className="rounded-sm bg-red-500 px-2 py-1 text-white">Breaking News</span>
+                  <span className="text-slate-500 dark:text-slate-400">{heroReadTime}</span>
+                </div>
+              </div>
             </Link>
-          ))}
-        </div>
+          </div>
+        </motion.section>
+
+        <CategoryStrip categories={categories} nextTitle="Popular now" />
+
+        <section>
+          <div className="grid gap-8 lg:grid-cols-[1.35fr_0.9fr_0.9fr]">
+            <div className="space-y-6">
+              <StoryCard article={stories[0]} variant="large" />
+            </div>
+            <div className="space-y-6">
+              <StoryCard article={stories[1]} />
+              <StoryCard article={stories[2]} />
+              <StoryCard article={stories[3]} />
+              <StoryCard article={stories[4]} variant="line" />
+            </div>
+            <div className="space-y-6">
+              <div className="grid h-[390px] place-items-center rounded-md bg-[#282524] text-sm font-semibold uppercase text-white dark:bg-white dark:text-slate-900">Advert</div>
+              <StoryCard article={stories[5]} />
+              <StoryCard article={stories[6]} />
+            </div>
+          </div>
         </section>
 
-        {authorQuery.data && (
-          <section className="glass rounded-3xl p-6 md:p-8 grid gap-6 md:grid-cols-[160px_1fr] items-center">
-            <img
-              src={authorQuery.data.photo_url}
-              alt={authorQuery.data.name}
-              className="w-40 h-40 object-cover rounded-3xl"
-            />
-            <div>
-              <p className="font-ui uppercase tracking-[0.2em] text-brand-700 dark:text-brand-300">Meet the Editor</p>
-              <h2 className="font-display text-3xl mt-2">{authorQuery.data.name}</h2>
-              <p className="mt-1 text-slate-600 dark:text-slate-300">{authorQuery.data.job_title}</p>
-              <p className="mt-3 text-slate-700 dark:text-slate-300 max-w-3xl">{authorQuery.data.bio}</p>
-              <Link
-                to={`/author/${authorQuery.data.slug}`}
-                className="inline-block mt-5 bg-brand-700 hover:bg-brand-900 text-white px-5 py-2 rounded-full font-ui"
-              >
-                View author profile
-              </Link>
+        {editor && (
+          <section className="mx-auto max-w-lg text-center">
+            <h2 className="font-ui text-sm font-bold uppercase tracking-wide">Meet the editor(s)</h2>
+            <div className="mt-8 grid items-center gap-4 sm:grid-cols-[150px_1fr] sm:text-left">
+              <img src={editor.photo_url} alt={editor.name} className="mx-auto h-32 w-32 rounded-full object-cover" />
+              <div>
+                <span className="rounded-full bg-amber-400 px-3 py-1 font-ui text-xs font-bold text-slate-950">1-st editor</span>
+                <p className="mt-5 font-display text-xl font-bold">{editor.name}</p>
+                <p className="font-ui text-xs text-slate-500 dark:text-slate-400">{editor.job_title}</p>
+              </div>
+              <p className="rounded-md bg-white p-4 text-left text-xs leading-5 text-slate-600 shadow-sm dark:bg-[#233133] dark:text-slate-300 sm:col-start-2">
+                {editor.bio}
+              </p>
             </div>
           </section>
         )}
 
         <section>
-        <SectionHeader eyebrow="Feed" title="Latest News" />
-        <div className="news-grid">
-          {articles.slice(1).map((article, i) => (
-            <ArticleCard key={article.slug} article={article} index={i} />
-          ))}
-        </div>
-        {newsQuery.hasNextPage && (
-          <div className="mt-6 text-center">
-            <button
-              type="button"
-              onClick={() => newsQuery.fetchNextPage()}
-              className="px-6 py-3 rounded-full bg-brand-700 hover:bg-brand-900 text-white font-ui"
-            >
-              Load more stories
-            </button>
+          <h2 className="text-center font-ui text-sm font-bold uppercase tracking-wide">Latest feed</h2>
+          <div className="mt-8 grid gap-8 lg:grid-cols-3">
+            <div className="space-y-4">
+              <StoryCard article={stories[7]} />
+              <StoryCard article={stories[8]} variant="line" />
+              <StoryCard article={stories[9]} variant="line" />
+              <StoryCard article={stories[10]} variant="line" />
+            </div>
+            <div className="space-y-4">
+              <StoryCard article={stories[11]} />
+              <StoryCard article={stories[12]} variant="line" />
+              <StoryCard article={stories[13]} variant="line" />
+              <StoryCard article={stories[2]} variant="line" />
+            </div>
+            <div className="space-y-4">
+              <StoryCard article={stories[3]} variant="line" />
+              <StoryCard article={stories[4]} variant="line" />
+              <StoryCard article={stories[5]} variant="line" />
+              <StoryCard article={stories[6]} />
+            </div>
           </div>
-        )}
+          {newsQuery.hasNextPage && (
+            <div className="mt-8 text-center">
+              <button type="button" onClick={() => newsQuery.fetchNextPage()} className="font-ui text-sm font-bold text-slate-400">
+                Load More ◢
+              </button>
+            </div>
+          )}
         </section>
+
+        <NewsletterBand />
       </div>
+      <NewsletterPopup />
+      <BackToTop />
     </>
   );
 }

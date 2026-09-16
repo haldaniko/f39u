@@ -18,9 +18,12 @@ export default {
         }
       },
       fontFamily: {
-        display: ["'Space Grotesk'", "sans-serif"],
-        body: ["'Source Serif 4'", "serif"],
-        ui: ["'IBM Plex Sans'", "sans-serif"]
+        primary: ["var(--font-primary)"],
+        titles: ["var(--font-titles)"],
+        labels: ["var(--font-labels)"],
+        display: ["var(--font-titles)"],
+        body: ["var(--font-primary)"],
+        ui: ["var(--font-labels)"]
       },
       boxShadow: {
         glow: "0 10px 40px rgba(0, 127, 122, 0.25)"

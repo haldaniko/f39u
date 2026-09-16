@@ -1,48 +1,31 @@
-import { Link, NavLink } from "react-router-dom";
+import { Link } from "react-router-dom";
 
+import { IconCircle, MailIcon, MenuIcon, SearchControl } from "../components/DesignPrimitives";
 import DarkModeToggle from "../components/DarkModeToggle";
 import Logo from "../components/Logo";
 
-const navItems = [
-  { to: "/", label: "Home" },
-  { to: "/search", label: "Search" },
-  { to: "/about", label: "About" },
-  { to: "/contact", label: "Contact" },
-];
-
 export default function MainLayout({ children }) {
   return (
-    <div className="min-h-screen">
-      <header className="sticky top-0 z-20 border-b border-white/40 dark:border-slate-700/60 glass">
-        <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between gap-4">
+    <div id="top" className="min-h-screen">
+      <header className="sticky top-0 z-20 border-b border-[#60666b] bg-[#1d282d]">
+        <div className="mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-5">
           <Logo />
-          <nav className="hidden md:flex items-center gap-5">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  `font-ui text-sm tracking-wide ${isActive ? "text-accent-700 dark:text-accent-500" : "text-slate-700 dark:text-slate-300"}`
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
-          <DarkModeToggle />
-        </div>
-      </header>
-      <main className="mx-auto max-w-7xl px-4 py-8">{children}</main>
-      <footer className="border-t border-slate-200 dark:border-slate-800 mt-12">
-        <div className="mx-auto max-w-7xl px-4 py-8 text-sm text-slate-600 dark:text-slate-300">
-          <p className="font-ui">Future Xclusive Local and Foreign Media • Independent global news desk.</p>
-          <p className="mt-1">© {new Date().getFullYear()} Future Xclusive Local and Foreign Media</p>
-          <div className="mt-2 flex gap-4">
-            <Link to="/about" className="text-brand-700 dark:text-brand-300">Learn more</Link>
-            <Link to="/admin" className="text-slate-400 hover:text-brand-700 dark:hover:text-brand-300">Staff login</Link>
+          <SearchControl />
+          <div className="flex items-center justify-end gap-2">
+            <DarkModeToggle />
+            <IconCircle label="Contact">
+              <MailIcon className="h-4 w-4" />
+            </IconCircle>
+            <Link to="/search" className="grid h-9 w-9 place-items-center rounded-full border border-[#60666b] text-white md:hidden">
+              <span className="text-sm">⌕</span>
+            </Link>
+            <button type="button" className="ml-4 text-white" aria-label="Open menu">
+              <MenuIcon className="h-7 w-7" />
+            </button>
           </div>
         </div>
-      </footer>
+      </header>
+      <main className="mx-auto max-w-7xl px-4">{children}</main>
     </div>
   );
 }
