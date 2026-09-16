@@ -198,7 +198,7 @@ body {
 .newsletter-popup__content h2 {
   margin: 0;
   font-family: var(--font-primary);
-  font-size: clamp(40px, 3.25vw, 47px);
+  font-size: clamp(32px, 2.6vw, 40px);
   font-weight: 700;
   line-height: 1.12;
   letter-spacing: 0;

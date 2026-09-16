@@ -203,7 +203,7 @@ export function NewsletterBand() {
   return (
     <section className="grid gap-10 py-16 md:grid-cols-[1fr_520px] md:items-center">
       <div>
-        <h2 className="max-w-xl font-primary text-4xl font-bold uppercase leading-tight tracking-normal md:text-5xl">
+        <h2 className="max-w-xl font-primary text-3xl font-bold uppercase leading-tight tracking-normal md:text-4xl">
           Stay <span className="text-amber-400">up to date</span> with the world's latest stories.
         </h2>
         <p className="mt-12 font-ui text-sm font-semibold text-slate-500 dark:text-slate-400">
