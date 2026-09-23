@@ -5,7 +5,6 @@ import {
   BackToTop,
   CategoryStrip,
   NewsletterBand,
-  NewsletterPopup,
   StoryCard,
   fallbackImage,
 } from "../components/DesignPrimitives";
@@ -123,21 +122,20 @@ export default function HomePage() {
         <CategoryStrip categories={categories} nextTitle="Popular now" />
 
         <section>
-          <div className="grid gap-8 lg:grid-cols-[1.35fr_0.9fr_0.9fr]">
-            <div className="space-y-6">
-              <StoryCard article={stories[0]} variant="large" />
-            </div>
-            <div className="space-y-6">
-              <StoryCard article={stories[1]} />
-              <StoryCard article={stories[2]} />
-              <StoryCard article={stories[3]} />
-              <StoryCard article={stories[4]} variant="line" />
-            </div>
-            <div className="space-y-6">
-              <div className="grid h-[390px] place-items-center rounded-md bg-[#282524] text-sm font-semibold uppercase text-white dark:bg-white dark:text-slate-900">Advert</div>
-              <StoryCard article={stories[5]} />
-              <StoryCard article={stories[6]} />
-            </div>
+          <div className="grid gap-6 lg:grid-cols-[1.35fr_0.9fr_0.9fr] lg:grid-rows-[210px_250px_190px_230px_210px]">
+            <StoryCard article={stories[0]} variant="large" className="lg:col-start-1 lg:row-span-2 lg:row-start-1" />
+            <StoryCard article={stories[7]} variant="popularCompact" className="lg:col-start-1 lg:row-start-3" />
+            <StoryCard article={stories[8]} variant="popular" className="lg:col-start-1 lg:row-span-2 lg:row-start-4" />
+
+            <StoryCard article={stories[1]} variant="popularCompact" className="lg:col-start-2 lg:row-start-1" />
+            <StoryCard article={stories[2]} variant="popular" className="lg:col-start-2 lg:row-span-2 lg:row-start-2" />
+            <StoryCard article={stories[3]} variant="popularCompact" className="lg:col-start-2 lg:row-start-4" />
+            <StoryCard article={stories[4]} variant="popularCompact" className="lg:col-start-2 lg:row-start-5" />
+
+            <div className="grid h-full place-items-center rounded-md bg-[#282524] text-sm font-semibold uppercase text-white dark:bg-white dark:text-slate-900 lg:col-start-3 lg:row-span-2 lg:row-start-1">Advert</div>
+            <StoryCard article={stories[5]} variant="popularCompact" className="lg:col-start-3 lg:row-start-3" />
+            <StoryCard article={stories[6]} variant="popularCompact" className="lg:col-start-3 lg:row-start-4" />
+            <StoryCard article={stories[9]} variant="popularCompact" className="lg:col-start-3 lg:row-start-5" />
           </div>
         </section>
 
@@ -191,7 +189,6 @@ export default function HomePage() {
 
         <NewsletterBand />
       </div>
-      <NewsletterPopup />
       <BackToTop />
     </>
   );

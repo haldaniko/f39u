@@ -1,11 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import newsletterPortrait from "../assets/newsletter-popup-portrait.png";
 import arrowRightOutline from "../assets/solar_arrow-right-outline.svg";
+import pinIcon from "../assets/vector.svg";
 import { estimateReadingTime } from "../utils/formatters";
 
 export const fallbackImage = "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1800&q=80";
+const newsletterPopupSessionKey = "fxlfm-newsletter-popup-shown";
+const newsletterPopupOpenEvent = "fxlfm:open-newsletter-popup";
+
+export function openNewsletterPopup() {
+  window.dispatchEvent(new Event(newsletterPopupOpenEvent));
+}
 
 function Icon({ children, className = "h-4 w-4" }) {
   return (
@@ -67,15 +74,6 @@ export function SunIcon({ className }) {
   );
 }
 
-function TagIcon() {
-  return (
-    <Icon className="h-3 w-3">
-      <path d="M20 10 14 4H5v9l6 6 9-9Z" />
-      <path d="M8 8h.01" />
-    </Icon>
-  );
-}
-
 function ArrowUpIcon() {
   return (
     <Icon className="h-5 w-5">
@@ -101,7 +99,7 @@ export function MetaRow({ article, compact = false }) {
   return (
     <div className={`flex items-center gap-4 font-ui text-[10px] font-bold uppercase tracking-[0.08em] ${compact ? "justify-between" : ""}`}>
       <span className="inline-flex items-center gap-1 text-amber-500">
-        <TagIcon />
+        <img src={pinIcon} alt="" className="h-3 w-3" aria-hidden="true" />
         {category}
       </span>
       <span className="ml-auto text-slate-500 dark:text-slate-400">{readTime}</span>
@@ -110,14 +108,21 @@ export function MetaRow({ article, compact = false }) {
   );
 }
 
-export function StoryCard({ article, variant = "default", image = true }) {
+export function StoryCard({ article, variant = "default", image = true, className = "" }) {
   const title = article?.title || "Art Basel brings fun back to the fair with the element of surprise";
+  const fallbackSummary = "In a surprising turn of events, a rare species of butterfly, previously thought to be extinct, has been spotted in the lush forests of Evergreen Valley. Local conservationists say the discovery could reshape how researchers understand fragile habitats, migration patterns and the quiet environmental changes unfolding across the region. The finding has prompted a fresh survey of nearby woodland, with scientists comparing historic field notes, satellite imagery and community reports to understand whether this is an isolated sighting or evidence of a wider recovery.";
+  const storyText = article?.rewritten_content || article?.summary || fallbackSummary;
   const href = article?.slug ? `/article/${article.slug}` : "/search";
   const source = article?.source_name || "Investor.bg";
+  const isLarge = variant === "large";
+  const isPopular = variant === "popular";
+  const isPopularCompact = variant === "popularCompact";
+  const isGridCard = Boolean(className);
+  const showImage = image && !isPopularCompact;
 
   if (variant === "line") {
     return (
-      <Link to={href} className="block rounded-lg border-b border-sky-200/70 bg-white px-5 py-4 transition hover:text-accent-700 dark:border-slate-700 dark:bg-[#233133]">
+      <Link to={href} className={`block rounded-lg border-b border-sky-200/70 bg-white px-5 py-4 transition hover:text-accent-700 dark:border-slate-700 dark:bg-[#233133] ${className}`}>
         <h3 className="font-body text-xl font-semibold leading-tight">{title}</h3>
         <div className="mt-4">
           <MetaRow article={article} compact />
@@ -127,24 +132,27 @@ export function StoryCard({ article, variant = "default", image = true }) {
   }
 
   return (
-    <Link to={href} className="group block overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-1 hover:shadow-xl dark:bg-[#233133] dark:ring-slate-700">
-      {image && (
-        <div className={variant === "large" ? "h-64 bg-slate-200 dark:bg-slate-300" : "h-44 bg-slate-200 dark:bg-slate-300"}>
+    <Link to={href} className={`group ${isGridCard ? "flex h-full flex-col" : "block"} overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-1 hover:shadow-xl dark:bg-[#233133] dark:ring-slate-700 ${className}`}>
+      {showImage && (
+        <div className={`${isLarge ? "h-64" : isPopular ? "h-24" : "h-44"} shrink-0 bg-slate-200 dark:bg-slate-300`}>
           {article?.image_url && (
             <img src={article.image_url} alt={title} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" loading="lazy" />
           )}
         </div>
       )}
-      <div className={variant === "large" ? "p-5" : "p-4"}>
+      <div className={`${isLarge ? "p-5" : isPopular || isPopularCompact ? "p-3" : "p-4"} ${isGridCard ? "flex min-h-0 flex-1 flex-col" : ""}`}>
         <p className="font-ui text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">{source}</p>
-        <h3 className={`${variant === "large" ? "mt-4 text-2xl" : "mt-2 text-xl"} font-body font-semibold leading-tight`}>
+        <h3 className={`${isLarge ? "mt-4 text-2xl" : isPopular || isPopularCompact ? "mt-2 text-base" : "mt-2 text-xl"} ${isPopular || isPopularCompact ? "line-clamp-2" : ""} font-body font-semibold leading-tight`}>
           {title}
         </h3>
-        {variant === "large" && article?.summary && (
-          <p className="mt-4 line-clamp-3 text-sm leading-6 text-slate-600 dark:text-slate-300">{article.summary}</p>
+        {isLarge && (
+          <p className="mt-4 line-clamp-4 text-sm leading-6 text-slate-600 dark:text-slate-300">{storyText}</p>
         )}
-        <div className="mt-4">
-          <MetaRow article={article} compact={variant !== "large"} />
+        {(isPopular || isPopularCompact) && (
+          <p className={`${isPopularCompact ? "mt-3 line-clamp-[7]" : "mt-2 line-clamp-[8]"} text-xs leading-5 text-slate-600 dark:text-slate-300`}>{storyText}</p>
+        )}
+        <div className={isGridCard ? "mt-auto pt-4" : "mt-4"}>
+          <MetaRow article={article} compact={!isLarge} />
         </div>
       </div>
     </Link>
@@ -231,7 +239,23 @@ export function NewsletterBand() {
 }
 
 export function NewsletterPopup() {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return sessionStorage.getItem(newsletterPopupSessionKey) !== "true";
+  });
+
+  useEffect(() => {
+    if (open) {
+      sessionStorage.setItem(newsletterPopupSessionKey, "true");
+    }
+  }, [open]);
+
+  useEffect(() => {
+    const handleOpen = () => setOpen(true);
+
+    window.addEventListener(newsletterPopupOpenEvent, handleOpen);
+    return () => window.removeEventListener(newsletterPopupOpenEvent, handleOpen);
+  }, []);
 
   if (!open) return null;
 
@@ -290,22 +314,22 @@ export function NewsletterPopup() {
 
 export function SearchControl() {
   return (
-    <form className="hidden h-9 w-[300px] items-center rounded-full border-2 border-[#60666b] bg-transparent p-0.5 md:flex lg:w-[340px]">
+    <form className="relative hidden h-9 w-[300px] items-center rounded-full border border-[#60666b] bg-transparent md:flex lg:w-[340px]">
       <input
         aria-label="Search"
         placeholder="Search..."
-        className="min-w-0 flex-1 bg-transparent py-0 pl-4 pr-2 font-ui text-sm text-white outline-none placeholder:text-slate-300"
+        className="min-w-0 flex-1 bg-transparent py-0 pl-4 pr-12 font-ui text-sm text-white outline-none placeholder:text-slate-300"
       />
-      <button type="submit" className="grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 border-amber-400 text-amber-400">
+      <button type="submit" className="absolute -right-1 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full border-2 border-amber-400 bg-[#1d282d] text-amber-400">
         <SearchIcon className="h-4 w-4" />
       </button>
     </form>
   );
 }
 
-export function IconCircle({ children, label }) {
+export function IconCircle({ children, label, onClick }) {
   return (
-    <button type="button" aria-label={label} className="grid h-9 w-9 place-items-center rounded-full border-2 border-[#60666b] text-white">
+    <button type="button" aria-label={label} onClick={onClick} className="grid h-9 w-9 place-items-center rounded-full border-2 border-[#60666b] text-white">
       {children}
     </button>
   );
