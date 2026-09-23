@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from django.db.models import Q
 from django.http import JsonResponse
 from rest_framework import permissions
 from rest_framework.decorators import api_view, permission_classes
@@ -57,6 +56,7 @@ class CategoryViewSet(ReadOnlyModelViewSet):
 
     def get_queryset(self):
         NewsQueryService.ensure_demo_content()
+        NewsQueryService.normalize_category_aliases()
         return Category.objects.all().order_by("name")
 
 
@@ -88,8 +88,9 @@ def search_view(request):
     if not query:
         return Response([])
     queryset = Article.objects.filter(
-        status=Article.Status.PUBLISHED
-    ).filter(Q(title__icontains=query) | Q(summary__icontains=query) | Q(rewritten_content__icontains=query))
+        status=Article.Status.PUBLISHED,
+        title__icontains=query,
+    )
     return Response(ArticleListSerializer(queryset[:20], many=True).data)
 
 
@@ -121,6 +122,7 @@ class AdminArticleOptionsView(APIView):
     permission_classes = [permissions.IsAdminUser]
 
     def get(self, request):
+        NewsQueryService.normalize_category_aliases()
         return Response(
             {
                 "statuses": [

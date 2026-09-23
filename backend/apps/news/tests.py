@@ -9,7 +9,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from .models import Article, ArticleSlugRedirect, Author, Category, Tag
-from .providers import NewsProvider, NormalizedArticle, RSSProvider
+from .providers import NewsProvider, NormalizedArticle, WebFeedProvider
 from .seo_views import SEO_BLOCK_PATTERN, _seo_head
 
 
@@ -242,7 +242,7 @@ class ProviderQualityGateTests(TestCase):
             "b7f9bb1c363e64fc88b8e4ddc9f25ef7-459333143.jpg"
         )
 
-        self.assertIn("/1280x720/", RSSProvider._upgrade_image_url(thumbnail))
+        self.assertIn("/1280x720/", WebFeedProvider._upgrade_image_url(thumbnail))
 
     def test_save_articles_skips_empty_content_and_low_resolution_images(self):
         class FakeProvider(NewsProvider):
@@ -263,7 +263,7 @@ class ProviderQualityGateTests(TestCase):
                     "source_url": "https://example.com/empty-source",
                     "image_url": "https://images.example.com/1280x720/empty.jpg",
                     "category": "World",
-                    "tags": ["rss"],
+                    "tags": ["feed"],
                 },
                 {
                     "title": "Tiny Image",
@@ -272,7 +272,7 @@ class ProviderQualityGateTests(TestCase):
                     "source_url": "https://example.com/tiny-image",
                     "image_url": "https://images.example.com/200x113/tiny.jpg",
                     "category": "World",
-                    "tags": ["rss"],
+                    "tags": ["feed"],
                 },
                 {
                     "title": "Publishable Story",
@@ -281,7 +281,7 @@ class ProviderQualityGateTests(TestCase):
                     "source_url": "https://example.com/publishable",
                     "image_url": "https://images.example.com/1280x720/publishable.jpg",
                     "category": "World",
-                    "tags": ["rss"],
+                    "tags": ["feed"],
                 },
             ]
         )

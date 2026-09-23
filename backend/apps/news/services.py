@@ -9,7 +9,7 @@ from django.utils.text import slugify
 
 from .models import Article, Author, Category, Tag
 from .providers import get_providers
-from .repositories import ArticleRepository
+from .repositories import ArticleRepository, CATEGORY_ALIASES
 
 
 DEMO_ARTICLES = [
@@ -125,7 +125,40 @@ class NewsIngestionService:
 
 class NewsQueryService:
     @staticmethod
+    def normalize_category_aliases() -> None:
+        for alias, target_name in CATEGORY_ALIASES.items():
+            target_slug = slugify(target_name)
+            alias_slug = slugify(alias)
+            target = Category.objects.filter(slug=target_slug).first() or Category.objects.filter(name__iexact=target_name).first()
+
+            duplicates = (
+                Category.objects.filter(name__iexact=alias)
+                | Category.objects.filter(slug=alias_slug)
+            ).distinct()
+
+            if target is None:
+                target = duplicates.first()
+                if target is None:
+                    continue
+                target.name = target_name
+                target.slug = target_slug
+                target.save(update_fields=["name", "slug"])
+
+            if target.name != target_name or target.slug != target_slug:
+                target.name = target_name
+                target.slug = target_slug
+                target.save(update_fields=["name", "slug"])
+
+            for category in duplicates:
+                if category.pk == target.pk:
+                    continue
+                Article.objects.filter(category=category).update(category=target)
+                category.delete()
+
+    @staticmethod
     def ensure_demo_content() -> int:
+        NewsQueryService.normalize_category_aliases()
+
         if ArticleRepository.published().exists():
             return 0
 

@@ -84,25 +84,21 @@ export default function CategoryPage() {
         )}
 
         {stories.length > 1 && (
-          <div className="grid gap-6 lg:grid-cols-[1fr_1fr_0.9fr]">
-            <div className="space-y-4">
-              <StoryCard article={stories[1]} />
-              <StoryCard article={stories[2]} variant="line" />
-              <StoryCard article={stories[3]} variant="line" />
-              <StoryCard article={stories[4]} variant="line" />
-            </div>
-            <div className="space-y-4">
-              <StoryCard article={stories[5]} />
-              <StoryCard article={stories[6]} variant="line" />
-              <StoryCard article={stories[7]} variant="line" />
-              <StoryCard article={stories[8]} variant="line" />
-            </div>
-            <div className="space-y-4">
-              <StoryCard article={stories[9]} variant="line" />
-              <StoryCard article={stories[10]} variant="line" />
-              <StoryCard article={stories[11]} variant="line" />
-              <StoryCard article={stories[1]} />
-            </div>
+          <div className="grid gap-6 lg:grid-cols-[1fr_1fr_0.9fr] lg:grid-rows-[220px_220px_200px_200px_240px]">
+            <StoryCard article={stories[1]} variant="popular" imageClassName="h-44" contentClassName="p-4" className="lg:col-start-1 lg:row-span-2 lg:row-start-1" />
+            <StoryCard article={stories[2]} variant="popularCompact" contentClassName="p-4" className="lg:col-start-1 lg:row-start-3" />
+            <StoryCard article={stories[3]} variant="popularCompact" contentClassName="p-4" className="lg:col-start-1 lg:row-start-4" />
+            <StoryCard article={stories[4]} variant="popularCompact" contentClassName="p-4" className="lg:col-start-1 lg:row-start-5" />
+
+            <StoryCard article={stories[5]} variant="popular" imageClassName="h-44" contentClassName="p-4" className="lg:col-start-2 lg:row-span-2 lg:row-start-1" />
+            <StoryCard article={stories[6]} variant="popularCompact" contentClassName="p-4" className="lg:col-start-2 lg:row-start-3" />
+            <StoryCard article={stories[7]} variant="popularCompact" contentClassName="p-4" className="lg:col-start-2 lg:row-start-4" />
+            <StoryCard article={stories[8]} variant="popularCompact" contentClassName="p-4" className="lg:col-start-2 lg:row-start-5" />
+
+            <StoryCard article={stories[9]} variant="popularCompact" contentClassName="p-4" className="lg:col-start-3 lg:row-start-1" />
+            <StoryCard article={stories[10]} variant="popularCompact" contentClassName="p-4" className="lg:col-start-3 lg:row-start-2" />
+            <StoryCard article={stories[11]} variant="popularCompact" contentClassName="p-4" className="lg:col-start-3 lg:row-start-3" />
+            <StoryCard article={stories[1]} variant="popular" imageClassName="h-44" contentClassName="p-4" className="lg:col-start-3 lg:row-span-2 lg:row-start-4" />
           </div>
         )}
 
@@ -115,12 +111,12 @@ export default function CategoryPage() {
         )}
 
         {stories.length > 4 && (
-          <section>
+          <section className="pt-4">
             <h2 className="font-ui text-xl font-bold uppercase">You may be interested</h2>
-            <div className="mt-8 grid gap-8 md:grid-cols-3">
-              <StoryCard article={stories[2]} />
-              <StoryCard article={stories[3]} />
-              <StoryCard article={stories[4]} />
+            <div className="mt-8 grid items-stretch gap-8 md:grid-cols-3">
+              <StoryCard article={stories[2]} variant="related" />
+              <StoryCard article={stories[3]} variant="related" />
+              <StoryCard article={stories[4]} variant="related" />
             </div>
           </section>
         )}

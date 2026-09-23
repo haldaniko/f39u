@@ -1,9 +1,14 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 import newsletterPortrait from "../assets/newsletter-popup-portrait.png";
 import arrowRightOutline from "../assets/solar_arrow-right-outline.svg";
 import pinIcon from "../assets/vector.svg";
+import facebookIcon from "../assets/article-share/facebook.svg";
+import linkIcon from "../assets/article-share/link.svg";
+import threadsIcon from "../assets/article-share/threads.svg";
+import whatsappIcon from "../assets/article-share/whatsapp.svg";
+import xIcon from "../assets/article-share/x.svg";
 import { estimateReadingTime } from "../utils/formatters";
 
 const newsletterPopupSessionKey = "fxlfm-newsletter-popup-shown";
@@ -82,15 +87,6 @@ function ArrowUpIcon() {
   );
 }
 
-function LinkIcon() {
-  return (
-    <Icon className="h-7 w-7">
-      <path d="M10 13a5 5 0 0 0 7.07 0l2.12-2.12a5 5 0 0 0-7.07-7.07L11 4.93" />
-      <path d="M14 11a5 5 0 0 0-7.07 0L4.81 13.12a5 5 0 0 0 7.07 7.07L13 19.07" />
-    </Icon>
-  );
-}
-
 export function MetaRow({ article, compact = false }) {
   const category = article?.category?.name || "News";
   const readTime = estimateReadingTime(article?.rewritten_content || article?.summary || article?.title || "");
@@ -107,19 +103,99 @@ export function MetaRow({ article, compact = false }) {
   );
 }
 
-export function StoryCard({ article, variant = "default", image = true, className = "", imageClassName = "" }) {
-  if (!article) return null;
+export function StoryCard({ article, variant = "default", image = true, className = "", imageClassName = "", contentClassName = "" }) {
+  const contentRef = useRef(null);
+  const sourceRef = useRef(null);
+  const titleRef = useRef(null);
+  const textRef = useRef(null);
+  const metaRef = useRef(null);
+  const [textBoxStyle, setTextBoxStyle] = useState(null);
 
-  const title = article.title;
-  const storyText = article.rewritten_content || article.summary || "";
+  const title = article?.title || "";
+  const storyText = article?.rewritten_content || article?.summary || "";
   const href = article?.slug ? `/article/${article.slug}` : "/search";
   const source = article?.source_name || "FXLFM";
   const isLarge = variant === "large";
   const isPopular = variant === "popular";
   const isPopularCompact = variant === "popularCompact";
+  const isRelated = variant === "related";
   const isGridCard = Boolean(className);
   const showImage = image && !isPopularCompact;
   const defaultImageClassName = isLarge ? "h-64" : isPopular ? "h-24" : "h-44";
+  const shouldClampText = isLarge || isPopular || isPopularCompact;
+  const textMarginClassName = isLarge ? "mt-4" : isPopular ? "mt-2" : "mt-3";
+
+  useLayoutEffect(() => {
+    if (!shouldClampText || !isGridCard) {
+      setTextBoxStyle(null);
+      return undefined;
+    }
+
+    const elements = [contentRef.current, sourceRef.current, titleRef.current, textRef.current, metaRef.current].filter(Boolean);
+    if (elements.length < 5) return undefined;
+
+    const readPixels = (value) => {
+      const parsed = parseFloat(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
+
+    const updateLineClamp = () => {
+      const content = contentRef.current;
+      const source = sourceRef.current;
+      const titleElement = titleRef.current;
+      const text = textRef.current;
+      const meta = metaRef.current;
+
+      if (!content || !source || !titleElement || !text || !meta) return;
+
+      const titleStyles = window.getComputedStyle(titleElement);
+      const textStyles = window.getComputedStyle(text);
+      const lineHeight = readPixels(textStyles.lineHeight) || (isLarge ? 24 : 20);
+      const metaStyles = window.getComputedStyle(meta);
+      const safeGap = isLarge ? 24 : 28;
+      const availableHeight =
+        content.clientHeight -
+        source.offsetHeight -
+        readPixels(titleStyles.marginTop) -
+        titleElement.offsetHeight -
+        readPixels(textStyles.marginTop) -
+        meta.offsetHeight -
+        readPixels(metaStyles.paddingTop) -
+        safeGap;
+      const nextLineClamp = Math.max(1, Math.floor(availableHeight / lineHeight));
+      const nextStyle = {
+        display: "-webkit-box",
+        WebkitBoxOrient: "vertical",
+        WebkitLineClamp: nextLineClamp,
+        height: `${nextLineClamp * lineHeight}px`,
+        maxHeight: `${nextLineClamp * lineHeight}px`,
+      };
+
+      setTextBoxStyle((current) => {
+        if (
+          current?.WebkitLineClamp === nextStyle.WebkitLineClamp &&
+          current?.maxHeight === nextStyle.maxHeight
+        ) {
+          return current;
+        }
+        return nextStyle;
+      });
+    };
+
+    updateLineClamp();
+
+    const resizeObserver = new ResizeObserver(updateLineClamp);
+    elements.forEach((element) => resizeObserver.observe(element));
+    window.addEventListener("resize", updateLineClamp);
+    document.fonts?.ready?.then(updateLineClamp);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateLineClamp);
+    };
+  }, [isGridCard, isLarge, shouldClampText, storyText, title]);
+
+  if (!article) return null;
 
   if (variant === "line") {
     return (
@@ -133,7 +209,7 @@ export function StoryCard({ article, variant = "default", image = true, classNam
   }
 
   return (
-    <Link to={href} className={`group ${isGridCard ? "flex h-full flex-col" : "block"} overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-1 hover:shadow-xl dark:bg-[#233133] dark:ring-slate-700 ${className}`}>
+    <Link to={href} className={`group min-w-0 ${isGridCard || isRelated ? "flex h-full flex-col" : "block"} overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-1 hover:shadow-xl dark:bg-[#233133] dark:ring-slate-700 ${className}`}>
       {showImage && (
         <div className={`${imageClassName || defaultImageClassName} shrink-0 bg-slate-200 dark:bg-slate-300`}>
           {article?.image_url && (
@@ -141,18 +217,21 @@ export function StoryCard({ article, variant = "default", image = true, classNam
           )}
         </div>
       )}
-      <div className={`${isLarge ? "p-5" : isPopular || isPopularCompact ? "p-3" : "p-4"} ${isGridCard ? "flex min-h-0 flex-1 flex-col" : ""}`}>
-        <p className="font-ui text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">{source}</p>
-        <h3 className={`${isLarge ? "mt-4 text-2xl" : isPopular || isPopularCompact ? "mt-2 text-base" : "mt-2 text-xl"} ${isPopular || isPopularCompact ? "line-clamp-2" : ""} font-body font-semibold leading-tight`}>
+      <div ref={contentRef} className={`${contentClassName || (isLarge ? "p-5" : isPopular || isPopularCompact ? "p-3" : "p-4")} ${isGridCard || isRelated ? "flex min-h-0 flex-1 flex-col" : ""}`}>
+        <p ref={sourceRef} className="shrink-0 font-ui text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">{source}</p>
+        <h3 ref={titleRef} className={`${isLarge ? "mt-4 text-2xl" : isPopular || isPopularCompact ? "mt-2 text-base" : "mt-2 text-xl"} shrink-0 font-body font-semibold leading-tight`}>
           {title}
         </h3>
         {isLarge && (
-          <p className="mt-4 line-clamp-4 text-sm leading-6 text-slate-600 dark:text-slate-300">{storyText}</p>
+          <p ref={textRef} className={`${textMarginClassName} shrink-0 overflow-hidden text-sm leading-6 text-slate-600 dark:text-slate-300`} style={textBoxStyle || undefined}>{storyText}</p>
         )}
         {(isPopular || isPopularCompact) && (
-          <p className={`${isPopularCompact ? "mt-3 line-clamp-[7]" : "mt-2 line-clamp-[8]"} text-xs leading-5 text-slate-600 dark:text-slate-300`}>{storyText}</p>
+          <p ref={textRef} className={`${textMarginClassName} shrink-0 overflow-hidden text-xs leading-5 text-slate-600 dark:text-slate-300`} style={textBoxStyle || undefined}>{storyText}</p>
         )}
-        <div className={isGridCard ? "mt-auto pt-4" : "mt-4"}>
+        {isRelated && storyText && (
+          <p className="mt-4 line-clamp-3 text-sm leading-6 text-slate-600 dark:text-slate-300">{storyText}</p>
+        )}
+        <div ref={metaRef} className={isGridCard || isRelated ? "mt-auto shrink-0 pt-5" : "mt-4"}>
           <MetaRow article={article} compact={!isLarge} />
         </div>
       </div>
@@ -162,6 +241,8 @@ export function StoryCard({ article, variant = "default", image = true, classNam
 
 export function CategoryStrip({ categories = [], title = "Browse by category", nextTitle }) {
   const items = categories.slice(0, 5);
+  const extraItems = categories.slice(5);
+  const [expanded, setExpanded] = useState(false);
 
   if (!items.length) return null;
 
@@ -183,8 +264,32 @@ export function CategoryStrip({ categories = [], title = "Browse by category", n
               </span>
             </Link>
           ))}
-          <Link to="/search" className="category-strip-exact__see-all">See all</Link>
+          {extraItems.length > 0 && (
+            <button
+              type="button"
+              className="category-strip-exact__see-all"
+              aria-expanded={expanded}
+              onClick={() => setExpanded((value) => !value)}
+            >
+              {expanded ? "Hide" : "See all"}
+            </button>
+          )}
         </div>
+        {extraItems.length > 0 && (
+          <div className={`category-strip-exact__extra ${expanded ? "category-strip-exact__extra--open" : ""}`}>
+            <div className="category-strip-exact__extra-grid">
+              {extraItems.map((category) => (
+                <Link key={category.slug} to={`/category/${category.slug}`} className="category-strip-exact__card">
+                  <span className="category-strip-exact__count">20</span>
+                  <h3>{category.name}</h3>
+                  <span className="category-strip-exact__arrow" aria-hidden="true">
+                    <img src={arrowRightOutline} alt="" />
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
         {nextTitle && (
           <div className="category-strip-exact__next">
             <span className="category-strip-exact__next-line" aria-hidden="true" />
@@ -312,14 +417,30 @@ export function NewsletterPopup() {
 }
 
 export function SearchControl() {
+  const navigate = useNavigate();
+  const [query, setQuery] = useState("");
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    const trimmedQuery = query.trim();
+
+    if (trimmedQuery) {
+      navigate(`/search?q=${encodeURIComponent(trimmedQuery)}`);
+    } else {
+      navigate("/search");
+    }
+  };
+
   return (
-    <form className="relative hidden h-9 w-[300px] items-center rounded-full border border-[#60666b] bg-transparent md:flex lg:w-[340px]">
+    <form onSubmit={handleSubmit} className="relative hidden h-9 w-[300px] items-center rounded-full border border-[#60666b] bg-transparent md:flex lg:w-[340px]">
       <input
         aria-label="Search"
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
         placeholder="Search..."
         className="min-w-0 flex-1 bg-transparent py-0 pl-4 pr-12 font-ui text-sm text-white outline-none placeholder:text-slate-300"
       />
-      <button type="submit" className="absolute -right-1 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full border-2 border-amber-400 bg-[#1d282d] text-amber-400">
+      <button type="submit" className="absolute -right-1 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full border-2 border-amber-400 bg-[#1d282d] text-amber-400 transition hover:bg-amber-400 hover:text-[#1d282d] focus-visible:bg-amber-400 focus-visible:text-[#1d282d] focus-visible:outline-none">
         <SearchIcon className="h-4 w-4" />
       </button>
     </form>
@@ -328,7 +449,7 @@ export function SearchControl() {
 
 export function IconCircle({ children, label, onClick }) {
   return (
-    <button type="button" aria-label={label} onClick={onClick} className="grid h-9 w-9 place-items-center rounded-full border-2 border-[#60666b] text-white">
+    <button type="button" aria-label={label} onClick={onClick} className="grid h-9 w-9 place-items-center rounded-full border-2 border-[#60666b] text-white transition hover:bg-[#60666b] focus-visible:bg-[#60666b] focus-visible:outline-none">
       {children}
     </button>
   );
@@ -343,15 +464,28 @@ export function BackToTop() {
 }
 
 export function ShareLinks() {
+  const links = [
+    { label: "Share on Threads", icon: threadsIcon },
+    { label: "Share on Facebook", icon: facebookIcon },
+    { label: "Share on X", icon: xIcon },
+    { label: "Share on WhatsApp", icon: whatsappIcon },
+    { label: "Copy article link", icon: linkIcon },
+  ];
+
   return (
     <div>
       <h2 className="font-ui text-xl font-bold uppercase text-slate-600 dark:text-slate-300">Share to</h2>
-      <div className="mt-5 flex items-center gap-6 text-slate-500 dark:text-slate-300">
-        <span className="font-display text-3xl">@</span>
-        <span className="font-display text-3xl">f</span>
-        <span className="font-display text-3xl">X</span>
-        <span className="font-display text-3xl">wa</span>
-        <LinkIcon />
+      <div className="mt-5 flex items-center gap-5">
+        {links.map((item) => (
+          <button
+            key={item.label}
+            type="button"
+            aria-label={item.label}
+            className="grid h-10 w-10 place-items-center rounded-full transition hover:bg-slate-200 focus-visible:bg-slate-200 focus-visible:outline-none dark:hover:bg-slate-700 dark:focus-visible:bg-slate-700"
+          >
+            <img src={item.icon} alt="" aria-hidden="true" className="max-h-8 max-w-8" />
+          </button>
+        ))}
       </div>
     </div>
   );

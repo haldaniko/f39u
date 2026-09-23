@@ -259,7 +259,7 @@ class GuardianProvider(NewsProvider):
         )
 
 
-class RSSProvider(NewsProvider):
+class WebFeedProvider(NewsProvider):
     default_feeds = [
         "https://feeds.reuters.com/reuters/worldNews",
         "https://feeds.bbci.co.uk/news/world/rss.xml",
@@ -287,7 +287,7 @@ class RSSProvider(NewsProvider):
     ]
 
     def _get_feed_urls(self) -> list[str]:
-        configured = os.getenv("RSS_FEEDS", "").strip()
+        configured = os.getenv("WEB_FEEDS", "").strip()
         if not configured:
             return self.default_feeds
         return [item.strip() for item in configured.split(",") if item.strip()]
@@ -410,10 +410,10 @@ class RSSProvider(NewsProvider):
         if not upgraded:
             return ""
 
-        # BBC RSS frequently exposes tiny thumbnails; switch to larger known variants.
+        # BBC feeds frequently expose tiny thumbnails; switch to larger known variants.
         upgraded = upgraded.replace("/ace/standard/240/", "/ace/standard/1024/")
         upgraded = upgraded.replace("/images/ic/240x135/", "/images/ic/1024x576/")
-        # Investor.bg and Dnes.bg RSS expose 200x113 thumbnails while article metadata has 1280x720.
+        # Investor.bg and Dnes.bg feeds expose 200x113 thumbnails while article metadata has 1280x720.
         upgraded = re.sub(r"(/media/files/resized/article/)200x113/", r"\g<1>1280x720/", upgraded)
         return upgraded
 
@@ -459,13 +459,13 @@ class RSSProvider(NewsProvider):
 
     def fetch_articles(self) -> list[dict[str, Any]]:
         collected: list[dict[str, Any]] = []
-        fulltext_budget_per_feed = int(os.getenv("RSS_FULLTEXT_FETCH_LIMIT_PER_FEED", "12"))
-        image_fetch_budget_per_feed = int(os.getenv("RSS_IMAGE_FETCH_LIMIT_PER_FEED", "8"))
+        fulltext_budget_per_feed = int(os.getenv("WEB_FEED_FULLTEXT_FETCH_LIMIT_PER_FEED", "12"))
+        image_fetch_budget_per_feed = int(os.getenv("WEB_FEED_IMAGE_FETCH_LIMIT_PER_FEED", "8"))
         for feed_url in self._get_feed_urls():
             fulltext_budget = fulltext_budget_per_feed
             image_fetch_budget = image_fetch_budget_per_feed
             parsed = feedparser.parse(feed_url)
-            feed_title = parsed.feed.get("title", "RSS")
+            feed_title = parsed.feed.get("title", "Web Feed")
             for entry in parsed.entries[:30]:
                 link = entry.get("link", "")
                 if not link:
@@ -491,8 +491,8 @@ class RSSProvider(NewsProvider):
                         "source": feed_title,
                         "url": link,
                         "image": image,
-                        "category": tags[0] if tags else "RSS",
-                        "tags": tags or ["rss"],
+                        "category": tags[0] if tags else "General",
+                        "tags": tags,
                     }
                 )
         return collected
@@ -501,13 +501,13 @@ class RSSProvider(NewsProvider):
         return NormalizedArticle(
             title=raw_article.get("title", "Untitled"),
             content=raw_article.get("summary", ""),
-            source_name=raw_article.get("source", "RSS"),
+            source_name=raw_article.get("source", "Web Feed"),
             source_url=raw_article.get("url", ""),
             image_url=self._upgrade_image_url(raw_article.get("image", "")),
-            category=raw_article.get("category", "RSS"),
+            category=raw_article.get("category", "General"),
             tags=raw_article.get("tags", []),
         )
 
 
 def get_providers() -> list[NewsProvider]:
-    return [NewsApiProvider(), GNewsProvider(), GuardianProvider(), RSSProvider()]
+    return [NewsApiProvider(), GNewsProvider(), GuardianProvider(), WebFeedProvider()]

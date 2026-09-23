@@ -3,7 +3,7 @@ from __future__ import annotations
 from django.core.management.base import BaseCommand
 
 from apps.news.models import Article
-from apps.news.providers import NewsProvider, RSSProvider
+from apps.news.providers import NewsProvider, WebFeedProvider
 
 
 def _contains_cyrillic(text: str) -> bool:
@@ -22,7 +22,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         dry_run = options["dry_run"]
-        extractor = RSSProvider()
+        extractor = WebFeedProvider()
         checked = repaired = unpublished = 0
 
         queryset = Article.objects.filter(status=Article.Status.PUBLISHED).order_by("id")

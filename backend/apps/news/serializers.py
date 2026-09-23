@@ -46,6 +46,7 @@ class ArticleListSerializer(serializers.ModelSerializer):
             "title",
             "slug",
             "summary",
+            "rewritten_content",
             "image_url",
             "source_name",
             "published_at",

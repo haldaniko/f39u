@@ -27,7 +27,7 @@ Production-oriented full-stack news portal with automated aggregation, AI rewrit
 
 - apps/news:
   - Models: Article, Category, Tag, Source
-  - Provider abstraction (`NewsProvider`) with NewsAPI, GNews, Guardian, RSS adapters
+  - Provider abstraction (`NewsProvider`) with NewsAPI, GNews, Guardian, and web feed adapters
   - Service and repository layers for ingestion/query/cleanup
   - Endpoints:
     - `/api/news/`
@@ -128,7 +128,7 @@ Production-oriented full-stack news portal with automated aggregation, AI rewrit
 ## Notes
 
 - AI provider implementations currently expose abstraction and fallback rewrite behavior. Plug in SDK-specific calls in `backend/apps/ai/providers.py` for production provider APIs.
-- RSS adapter interface exists and can be extended with feedparser-based ingestion.
+- Web feed adapter interface exists and can be extended with feedparser-based ingestion.
 
 ## External Ingestion
 
@@ -142,8 +142,8 @@ Production-oriented full-stack news portal with automated aggregation, AI rewrit
    - NewsAPI (`NEWSAPI_KEY`)
    - GNews (`GNEWS_API_KEY`)
    - The Guardian (`GUARDIAN_API_KEY`)
-   - RSS provider (works with no API key)
+   - Web feed provider (works with no API key)
 - If keys are empty, those providers return no articles.
-- RSS auto-loads from default public feeds even when all API keys are empty.
-- You can override feed list with `RSS_FEEDS` in `.env` (comma-separated URLs).
+- Web feeds auto-load from default public feeds even when all API keys are empty.
+- You can override the feed list with `WEB_FEEDS` in `.env` (comma-separated URLs).
 - For AI rewriting, all provider classes currently inherit a fallback implementation, so rewriting still works without external LLM APIs.

@@ -7,6 +7,12 @@ export default defineConfig({
     host: "0.0.0.0",
     port: 5173,
     allowedHosts: ["fxlfm.com", ".fxlfm.com", "frontend", "localhost"],
+    proxy: {
+      "/api": {
+        target: "http://localhost:8000",
+        changeOrigin: true,
+      },
+    },
   },
   preview: {
     host: "0.0.0.0",

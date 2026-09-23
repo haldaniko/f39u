@@ -9,6 +9,15 @@ from .models import Article, Author, Category, Source, Tag
 from .slug_utils import unique_article_slug
 
 
+CATEGORY_ALIASES = {
+    "agriculture & foodtech": "Agriculture",
+    "agriculture and foodtech": "Agriculture",
+    "biotech & health": "Health",
+    "biotech and health": "Health",
+    "artificial intelligence": "AI",
+}
+
+
 @dataclass
 class NormalizedArticle:
     title: str
@@ -21,6 +30,13 @@ class NormalizedArticle:
 
 
 class ArticleRepository:
+    @staticmethod
+    def _normalize_category_name(name: str) -> str:
+        value = str(name or "").strip() or "General"
+        if value.lower() == "rss":
+            return "General"
+        return CATEGORY_ALIASES.get(value.lower(), value)
+
     @staticmethod
     def _build_summary(content: str, title: str) -> str:
         normalized = " ".join(str(content).split())
@@ -75,7 +91,8 @@ class ArticleRepository:
 
     @staticmethod
     def upsert_original(payload: NormalizedArticle) -> tuple[Article, bool]:
-        category, _ = Category.objects.get_or_create(name=payload.category)
+        category_name = ArticleRepository._normalize_category_name(payload.category)
+        category, _ = Category.objects.get_or_create(name=category_name)
         author = Author.objects.filter(slug="maria-nicholson").first()
         unique_slug = unique_article_slug(payload.title)
         summary = ArticleRepository._build_summary(payload.content, payload.title)
@@ -130,7 +147,7 @@ class ArticleRepository:
         if payload.tags:
             for tag_name in payload.tags:
                 normalized_name = str(tag_name).strip()[:80]
-                if not normalized_name:
+                if not normalized_name or normalized_name.lower() == "rss":
                     continue
                 tag_slug = slugify(normalized_name)[:100] or "tag"
                 tag, _ = Tag.objects.get_or_create(
