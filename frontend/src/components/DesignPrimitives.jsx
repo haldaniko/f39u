@@ -6,7 +6,6 @@ import arrowRightOutline from "../assets/solar_arrow-right-outline.svg";
 import pinIcon from "../assets/vector.svg";
 import { estimateReadingTime } from "../utils/formatters";
 
-export const fallbackImage = "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1800&q=80";
 const newsletterPopupSessionKey = "fxlfm-newsletter-popup-shown";
 const newsletterPopupOpenEvent = "fxlfm:open-newsletter-popup";
 
@@ -93,7 +92,7 @@ function LinkIcon() {
 }
 
 export function MetaRow({ article, compact = false }) {
-  const category = article?.category?.name || "Art";
+  const category = article?.category?.name || "News";
   const readTime = estimateReadingTime(article?.rewritten_content || article?.summary || article?.title || "");
 
   return (
@@ -103,22 +102,24 @@ export function MetaRow({ article, compact = false }) {
         {category}
       </span>
       <span className="ml-auto text-slate-500 dark:text-slate-400">{readTime}</span>
-      {compact && <span className="hidden text-slate-500 dark:text-slate-400 sm:inline">{article?.source_name || "Investor.bg"}</span>}
+      {compact && <span className="hidden text-slate-500 dark:text-slate-400 sm:inline">{article?.source_name || "FXLFM"}</span>}
     </div>
   );
 }
 
-export function StoryCard({ article, variant = "default", image = true, className = "" }) {
-  const title = article?.title || "Art Basel brings fun back to the fair with the element of surprise";
-  const fallbackSummary = "In a surprising turn of events, a rare species of butterfly, previously thought to be extinct, has been spotted in the lush forests of Evergreen Valley. Local conservationists say the discovery could reshape how researchers understand fragile habitats, migration patterns and the quiet environmental changes unfolding across the region. The finding has prompted a fresh survey of nearby woodland, with scientists comparing historic field notes, satellite imagery and community reports to understand whether this is an isolated sighting or evidence of a wider recovery.";
-  const storyText = article?.rewritten_content || article?.summary || fallbackSummary;
+export function StoryCard({ article, variant = "default", image = true, className = "", imageClassName = "" }) {
+  if (!article) return null;
+
+  const title = article.title;
+  const storyText = article.rewritten_content || article.summary || "";
   const href = article?.slug ? `/article/${article.slug}` : "/search";
-  const source = article?.source_name || "Investor.bg";
+  const source = article?.source_name || "FXLFM";
   const isLarge = variant === "large";
   const isPopular = variant === "popular";
   const isPopularCompact = variant === "popularCompact";
   const isGridCard = Boolean(className);
   const showImage = image && !isPopularCompact;
+  const defaultImageClassName = isLarge ? "h-64" : isPopular ? "h-24" : "h-44";
 
   if (variant === "line") {
     return (
@@ -134,7 +135,7 @@ export function StoryCard({ article, variant = "default", image = true, classNam
   return (
     <Link to={href} className={`group ${isGridCard ? "flex h-full flex-col" : "block"} overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-1 hover:shadow-xl dark:bg-[#233133] dark:ring-slate-700 ${className}`}>
       {showImage && (
-        <div className={`${isLarge ? "h-64" : isPopular ? "h-24" : "h-44"} shrink-0 bg-slate-200 dark:bg-slate-300`}>
+        <div className={`${imageClassName || defaultImageClassName} shrink-0 bg-slate-200 dark:bg-slate-300`}>
           {article?.image_url && (
             <img src={article.image_url} alt={title} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" loading="lazy" />
           )}
@@ -160,11 +161,9 @@ export function StoryCard({ article, variant = "default", image = true, classNam
 }
 
 export function CategoryStrip({ categories = [], title = "Browse by category", nextTitle }) {
-  const fallback = ["Culture", "Startups", "Art", "Business", "Feminism"].map((name) => ({
-    name,
-    slug: name.toLowerCase(),
-  }));
-  const items = categories.length ? categories.slice(0, 5) : fallback;
+  const items = categories.slice(0, 5);
+
+  if (!items.length) return null;
 
   return (
     <section className="category-strip-exact">

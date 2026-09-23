@@ -31,6 +31,7 @@ class ArticleViewSet(ReadOnlyModelViewSet):
     search_fields = ["title", "summary", "rewritten_content"]
 
     def get_queryset(self):
+        NewsQueryService.ensure_demo_content()
         return (
             Article.objects.filter(status=Article.Status.PUBLISHED)
             .select_related("category", "author")
@@ -50,29 +51,39 @@ class ArticleViewSet(ReadOnlyModelViewSet):
 
 
 class CategoryViewSet(ReadOnlyModelViewSet):
-    queryset = Category.objects.all().order_by("name")
     serializer_class = CategorySerializer
     permission_classes = [permissions.AllowAny]
     lookup_field = "slug"
 
+    def get_queryset(self):
+        NewsQueryService.ensure_demo_content()
+        return Category.objects.all().order_by("name")
+
 
 class TagViewSet(ReadOnlyModelViewSet):
-    queryset = Tag.objects.all().order_by("name")
     serializer_class = TagSerializer
     permission_classes = [permissions.AllowAny]
     lookup_field = "slug"
 
+    def get_queryset(self):
+        NewsQueryService.ensure_demo_content()
+        return Tag.objects.all().order_by("name")
+
 
 class AuthorViewSet(ReadOnlyModelViewSet):
-    queryset = Author.objects.all().order_by("name")
     serializer_class = AuthorDetailSerializer
     permission_classes = [permissions.AllowAny]
     lookup_field = "slug"
+
+    def get_queryset(self):
+        NewsQueryService.ensure_demo_content()
+        return Author.objects.all().order_by("name")
 
 
 @api_view(["GET"])
 @permission_classes([permissions.AllowAny])
 def search_view(request):
+    NewsQueryService.ensure_demo_content()
     query = request.query_params.get("q", "").strip()
     if not query:
         return Response([])
