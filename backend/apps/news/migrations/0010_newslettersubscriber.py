@@ -30,6 +30,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="newslettersubscriber",
-            index=models.Index(fields=["is_active", "subscribed_at"], name="news_newsle_is_acti_5fcd22_idx"),
+            index=models.Index(fields=["is_active", "subscribed_at"], name="news_newsle_is_acti_193ebc_idx"),
         ),
     ]

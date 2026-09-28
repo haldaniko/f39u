@@ -75,7 +75,7 @@ export default function AdminSubscriberList() {
 
       <div className="admin-card mt-4 overflow-x-auto">
         <table className="w-full min-w-[760px] text-left text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+          <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:border-slate-700 dark:bg-slate-900">
             <tr>
               <th className="px-5 py-3">Email</th>
               <th className="px-4 py-3">Source</th>
@@ -84,11 +84,11 @@ export default function AdminSubscriberList() {
               <th className="px-5 py-3 text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
             {items.map((subscriber) => (
-              <tr key={subscriber.id} className="hover:bg-slate-50">
-                <td className="px-5 py-4 font-bold text-slate-800">{subscriber.email}</td>
-                <td className="px-4 py-4 text-slate-600">{subscriber.source_label}</td>
+              <tr key={subscriber.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                <td className="px-5 py-4 font-bold text-slate-800 dark:text-slate-100">{subscriber.email}</td>
+                <td className="px-4 py-4 text-slate-600 dark:text-slate-300">{subscriber.source_label}</td>
                 <td className="px-4 py-4">
                   <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${subscriber.is_active ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-600"}`}>
                     {subscriber.is_active ? "Active" : "Inactive"}

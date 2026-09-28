@@ -133,12 +133,12 @@ class NewsletterSubscribeView(APIView):
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data["email"]
         source = serializer.validated_data["source"]
-        subscriber = NewsletterSubscriber.objects.filter(email__iexact=email).first()
-        created = subscriber is None
+        subscriber, created = NewsletterSubscriber.objects.get_or_create(
+            email=email,
+            defaults={"source": source},
+        )
 
-        if created:
-            NewsletterSubscriber.objects.create(email=email, source=source)
-        else:
+        if not created:
             changed_fields = []
             if subscriber.email != email:
                 subscriber.email = email
