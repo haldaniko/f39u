@@ -9,6 +9,7 @@ import linkIcon from "../assets/article-share/link.svg";
 import threadsIcon from "../assets/article-share/threads.svg";
 import whatsappIcon from "../assets/article-share/whatsapp.svg";
 import xIcon from "../assets/article-share/x.svg";
+import { subscribeToNewsletter } from "../services/newsletterService";
 import { estimateReadingTime } from "../utils/formatters";
 
 const newsletterPopupSessionKey = "fxlfm-newsletter-popup-shown";
@@ -24,6 +25,12 @@ function Icon({ children, className = "h-4 w-4" }) {
       {children}
     </svg>
   );
+}
+
+export function getArticleCategories(article) {
+  const categories = Array.isArray(article?.categories) ? article.categories.filter(Boolean) : [];
+  if (categories.length) return categories;
+  return article?.category ? [article.category] : [];
 }
 
 export function SearchIcon({ className }) {
@@ -88,7 +95,7 @@ function ArrowUpIcon() {
 }
 
 export function MetaRow({ article, compact = false }) {
-  const category = article?.category?.name || "News";
+  const category = getArticleCategories(article)[0]?.name || "News";
   const readTime = estimateReadingTime(article?.rewritten_content || article?.summary || article?.title || "");
 
   return (
@@ -257,7 +264,7 @@ export function CategoryStrip({ categories = [], title = "Browse by category", n
         <div className="category-strip-exact__cards">
           {items.map((category) => (
             <Link key={category.slug} to={`/category/${category.slug}`} className="category-strip-exact__card">
-              <span className="category-strip-exact__count">20</span>
+              <span className="category-strip-exact__count">{category.total ?? 0}</span>
               <h3>{category.name}</h3>
               <span className="category-strip-exact__arrow" aria-hidden="true">
                 <img src={arrowRightOutline} alt="" />
@@ -280,7 +287,7 @@ export function CategoryStrip({ categories = [], title = "Browse by category", n
             <div className="category-strip-exact__extra-grid">
               {extraItems.map((category) => (
                 <Link key={category.slug} to={`/category/${category.slug}`} className="category-strip-exact__card">
-                  <span className="category-strip-exact__count">20</span>
+                  <span className="category-strip-exact__count">{category.total ?? 0}</span>
                   <h3>{category.name}</h3>
                   <span className="category-strip-exact__arrow" aria-hidden="true">
                     <img src={arrowRightOutline} alt="" />
@@ -311,7 +318,32 @@ export function SectionRuleTitle({ title }) {
   );
 }
 
+function useNewsletterSubscription(source) {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState("idle");
+  const [message, setMessage] = useState("");
+
+  const submit = async (event) => {
+    event.preventDefault();
+    setStatus("submitting");
+    setMessage("");
+    try {
+      const response = await subscribeToNewsletter(email.trim(), source);
+      setStatus("success");
+      setMessage(response.message || "You are subscribed.");
+      setEmail("");
+    } catch (error) {
+      setStatus("error");
+      setMessage(error.message || "Could not subscribe. Please try again.");
+    }
+  };
+
+  return { email, setEmail, status, message, submit };
+}
+
 export function NewsletterBand() {
+  const newsletter = useNewsletterSubscription("footer");
+
   return (
     <section className="grid gap-10 py-16 md:grid-cols-[1fr_520px] md:items-center">
       <div>
@@ -323,16 +355,25 @@ export function NewsletterBand() {
         </p>
       </div>
       <div>
-        <form className="flex rounded-full bg-slate-100 p-2 shadow-inner ring-1 ring-slate-200 dark:bg-slate-100 dark:ring-white/20">
+        <form onSubmit={newsletter.submit} className="flex rounded-full bg-slate-100 p-2 shadow-inner ring-1 ring-slate-200 dark:bg-slate-100 dark:ring-white/20">
           <input
             type="email"
+            required
+            autoComplete="email"
+            value={newsletter.email}
+            onChange={(event) => newsletter.setEmail(event.target.value)}
             placeholder="Enter your email"
             className="min-w-0 flex-1 bg-transparent px-5 font-ui text-sm text-slate-900 outline-none placeholder:text-slate-400"
           />
-          <button type="submit" className="rounded-full bg-amber-400 px-6 py-3 font-ui text-sm font-bold text-slate-950 hover:bg-amber-300">
-            Subscribe
+          <button type="submit" disabled={newsletter.status === "submitting"} className="rounded-full bg-amber-400 px-6 py-3 font-ui text-sm font-bold text-slate-950 hover:bg-amber-300 disabled:cursor-wait disabled:opacity-60">
+            {newsletter.status === "submitting" ? "Subscribing..." : "Subscribe"}
           </button>
         </form>
+        {newsletter.message && (
+          <p className={`mt-3 font-ui text-sm ${newsletter.status === "error" ? "text-red-600" : "text-emerald-700 dark:text-emerald-300"}`} role="status" aria-live="polite">
+            {newsletter.message}
+          </p>
+        )}
         <p className="mt-6 max-w-md font-ui text-xs leading-5 text-slate-400">
           By subscribing, you agree to receive our weekly newsletter. You can unsubscribe at any time.
         </p>
@@ -347,6 +388,7 @@ export function NewsletterPopup() {
     if (typeof window === "undefined") return false;
     return sessionStorage.getItem(newsletterPopupSessionKey) !== "true";
   });
+  const newsletter = useNewsletterSubscription("popup");
 
   useEffect(() => {
     if (open) {
@@ -403,10 +445,25 @@ export function NewsletterPopup() {
           <p className="newsletter-popup__lead">
             Sign up to our email newsletters to stay on top of news and opinion.
           </p>
-          <form className="newsletter-popup__form" onSubmit={(event) => event.preventDefault()}>
-            <input type="email" placeholder="Enter your email" aria-label="Email address" />
-            <button type="submit">Subscribe</button>
+          <form className="newsletter-popup__form" onSubmit={newsletter.submit}>
+            <input
+              type="email"
+              required
+              autoComplete="email"
+              value={newsletter.email}
+              onChange={(event) => newsletter.setEmail(event.target.value)}
+              placeholder="Enter your email"
+              aria-label="Email address"
+            />
+            <button type="submit" disabled={newsletter.status === "submitting"}>
+              {newsletter.status === "submitting" ? "Subscribing..." : "Subscribe"}
+            </button>
           </form>
+          {newsletter.message && (
+            <p className={`newsletter-popup__message newsletter-popup__message--${newsletter.status}`} role="status" aria-live="polite">
+              {newsletter.message}
+            </p>
+          )}
           <p className="newsletter-popup__fineprint">
             By subscribing, you agree to receive our weekly newsletter. You can unsubscribe at any time.
           </p>

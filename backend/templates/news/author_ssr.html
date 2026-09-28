@@ -12,8 +12,8 @@
 
   <main class="mx-auto max-w-5xl px-4 py-10">
     <section class="grid gap-8 md:grid-cols-[220px_1fr] items-start">
-      {% if author.photo_url %}
-        <img src="{{ author.photo_url }}" alt="{{ author.name }}" width="440" height="440" class="w-full aspect-square object-cover rounded-3xl" />
+      {% if author_photo_url %}
+        <img src="{{ author_photo_url }}" alt="{{ author.name }}" width="440" height="440" class="w-full aspect-square object-cover rounded-3xl" />
       {% endif %}
       <div>
         <p class="font-ui uppercase text-sm tracking-widest text-brand-700">Author</p>

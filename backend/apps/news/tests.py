@@ -1,14 +1,16 @@
 import json
 import re
+import tempfile
 from unittest.mock import Mock, patch
 from xml.etree import ElementTree
 
 from django.contrib.auth.models import User
-from django.test import SimpleTestCase, TestCase
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from .models import Article, ArticleSlugRedirect, Author, Category, Tag
+from .models import Article, ArticleSlugRedirect, Author, Category, NewsletterSubscriber, Tag
 from .providers import NewsProvider, NormalizedArticle, WebFeedProvider
 from .seo_views import SEO_BLOCK_PATTERN, _seo_head
 
@@ -25,7 +27,7 @@ class FrontendAdminApiTests(TestCase):
             username="reader",
             password="strong-test-password",
         )
-        self.category = Category.objects.create(name="Editorial")
+        self.category = Category.objects.get(slug="politics")
         self.author = Author.objects.get(slug="maria-nicholson")
         self.tag = Tag.objects.create(name="Exclusive")
 
@@ -97,7 +99,157 @@ class FrontendAdminApiTests(TestCase):
         self.assertIn({"value": "published", "label": "Published"}, response.data["statuses"])
         self.assertEqual(response.data["categories"][0]["id"], self.category.pk)
         self.assertEqual(response.data["authors"][0]["id"], self.author.pk)
-        self.assertEqual(response.data["tags"][0]["id"], self.tag.pk)
+        self.assertNotIn("tags", response.data)
+
+    def test_staff_can_create_article_tags_by_name(self):
+        self.authenticate_staff()
+        response = self.client.post(
+            "/api/admin/articles/",
+            {
+                "title": "Article with custom tags",
+                "rewritten_content": "Editorial copy.",
+                "category_ids": [self.category.pk],
+                "tag_names": ["Ukraine", "Analysis", "ukraine", "#Breaking"],
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201, response.data)
+        article = Article.objects.get(pk=response.data["id"])
+        self.assertCountEqual(
+            article.tags.values_list("name", flat=True),
+            ["Ukraine", "Analysis", "Breaking"],
+        )
+
+    def test_staff_can_manage_editors(self):
+        self.authenticate_staff()
+        create_response = self.client.post(
+            "/api/admin/authors/",
+            {
+                "name": "Alex Morgan",
+                "job_title": "Senior Editor",
+                "bio": "Covers international affairs.",
+                "location": "London",
+            },
+            format="json",
+        )
+        self.assertEqual(create_response.status_code, 201, create_response.data)
+
+        editor_id = create_response.data["id"]
+        update_response = self.client.patch(
+            f"/api/admin/authors/{editor_id}/",
+            {"job_title": "Managing Editor"},
+            format="json",
+        )
+        self.assertEqual(update_response.status_code, 200, update_response.data)
+        self.assertEqual(update_response.data["job_title"], "Managing Editor")
+
+        delete_response = self.client.delete(f"/api/admin/authors/{editor_id}/")
+        self.assertEqual(delete_response.status_code, 204)
+        self.assertFalse(Author.objects.filter(pk=editor_id).exists())
+
+    def test_staff_can_upload_and_remove_editor_photo(self):
+        self.authenticate_staff()
+        with tempfile.TemporaryDirectory() as media_root, override_settings(MEDIA_ROOT=media_root):
+            photo = SimpleUploadedFile(
+                "editor.png",
+                b"\x89PNG\r\n\x1a\neditor-photo",
+                content_type="image/png",
+            )
+            create_response = self.client.post(
+                "/api/admin/authors/",
+                {"name": "Photo Editor", "photo": photo},
+                format="multipart",
+            )
+
+            self.assertEqual(create_response.status_code, 201, create_response.data)
+            self.assertIn("/media/authors/editor", create_response.data["photo_url"])
+            editor = Author.objects.get(pk=create_response.data["id"])
+            self.assertTrue(editor.photo.name.startswith("authors/editor"))
+
+            remove_response = self.client.patch(
+                f"/api/admin/authors/{editor.pk}/",
+                {"remove_photo": True},
+                format="multipart",
+            )
+            self.assertEqual(remove_response.status_code, 200, remove_response.data)
+            editor.refresh_from_db()
+            self.assertFalse(editor.photo)
+
+    def test_staff_can_list_and_update_newsletter_subscribers(self):
+        subscriber = NewsletterSubscriber.objects.create(
+            email="reader@example.com",
+            source=NewsletterSubscriber.Source.POPUP,
+        )
+
+        anonymous_response = self.client.get("/api/admin/subscribers/")
+        self.assertEqual(anonymous_response.status_code, 401)
+
+        self.authenticate_staff()
+        list_response = self.client.get("/api/admin/subscribers/?search=reader")
+        self.assertEqual(list_response.status_code, 200)
+        self.assertEqual(list_response.data["count"], 1)
+        self.assertEqual(list_response.data["results"][0]["email"], "reader@example.com")
+
+        update_response = self.client.patch(
+            f"/api/admin/subscribers/{subscriber.pk}/",
+            {"is_active": False},
+            format="json",
+        )
+        self.assertEqual(update_response.status_code, 200)
+        subscriber.refresh_from_db()
+        self.assertFalse(subscriber.is_active)
+
+
+class NewsletterSubscriptionTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_anonymous_visitor_can_subscribe_without_creating_duplicates(self):
+        create_response = self.client.post(
+            "/api/newsletter/subscribe/",
+            {"email": "Reader@Example.com", "source": "footer"},
+            format="json",
+        )
+        duplicate_response = self.client.post(
+            "/api/newsletter/subscribe/",
+            {"email": "reader@example.com", "source": "popup"},
+            format="json",
+        )
+
+        self.assertEqual(create_response.status_code, 201)
+        self.assertEqual(duplicate_response.status_code, 200)
+        self.assertEqual(NewsletterSubscriber.objects.count(), 1)
+        subscriber = NewsletterSubscriber.objects.get()
+        self.assertEqual(subscriber.email, "reader@example.com")
+        self.assertEqual(subscriber.source, NewsletterSubscriber.Source.POPUP)
+        self.assertTrue(subscriber.is_active)
+
+    def test_subscribing_reactivates_an_inactive_address(self):
+        subscriber = NewsletterSubscriber.objects.create(
+            email="reader@example.com",
+            is_active=False,
+        )
+
+        response = self.client.post(
+            "/api/newsletter/subscribe/",
+            {"email": "reader@example.com", "source": "footer"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        subscriber.refresh_from_db()
+        self.assertTrue(subscriber.is_active)
+
+    def test_invalid_email_is_rejected(self):
+        response = self.client.post(
+            "/api/newsletter/subscribe/",
+            {"email": "not-an-email", "source": "footer"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(NewsletterSubscriber.objects.exists())
 
 
 class SeoHeadTests(SimpleTestCase):
@@ -159,7 +311,7 @@ class SeoHeadTests(SimpleTestCase):
 
 class ArticleModelTests(TestCase):
     def test_slug_generated(self):
-        category = Category.objects.create(name="Technology")
+        category = Category.objects.get(slug="technology")
         article = Article.objects.create(
             title="AI Update",
             original_title="AI Update",
@@ -171,7 +323,7 @@ class ArticleModelTests(TestCase):
         self.assertTrue(article.slug)
 
     def test_article_slug_is_readable_and_uses_numeric_collision_suffix(self):
-        category = Category.objects.create(name="Business")
+        category = Category.objects.get(slug="business")
         first = Article.objects.create(
             title="Elon Musk Net Worth 2026",
             original_title="Elon Musk Net Worth 2026",
@@ -193,7 +345,7 @@ class ArticleModelTests(TestCase):
         self.assertEqual(second.slug, "elon-musk-net-worth-2026-2")
 
     def test_article_slug_transliterates_non_latin_title(self):
-        category = Category.objects.create(name="World")
+        category = Category.objects.get(slug="world")
         article = Article.objects.create(
             title="Зеленски предложил встречу",
             original_title="Зеленски предложил встречу",
@@ -304,7 +456,7 @@ class ArticleSchemaViewTests(TestCase):
         frontend_response.raise_for_status.return_value = None
         mock_get.return_value = frontend_response
 
-        category = Category.objects.create(name="Technology")
+        category = Category.objects.get(slug="technology")
         tag = Tag.objects.create(name="Artificial Intelligence")
         author, _ = Author.objects.update_or_create(
             slug="maria-nicholson",
@@ -419,7 +571,7 @@ class AuthorPageTests(TestCase):
                 "joined_at": "2024-03-18",
             },
         )
-        category = Category.objects.create(name="World")
+        category = Category.objects.get(slug="world")
         article = Article.objects.create(
             title="Maria's Published Story",
             original_title="Maria's Published Story",
@@ -472,8 +624,8 @@ class RelatedStoriesTests(TestCase):
         mock_get.return_value = frontend_response
 
         author = Author.objects.get(slug="maria-nicholson")
-        technology = Category.objects.create(name="Technology")
-        business = Category.objects.create(name="Business")
+        technology = Category.objects.get(slug="technology")
+        business = Category.objects.get(slug="business")
         ai_tag = Tag.objects.create(name="Artificial Intelligence")
         published_at = timezone.now()
 
@@ -542,7 +694,7 @@ class RelatedStoriesTests(TestCase):
 
 class SitemapTests(TestCase):
     def test_sitemap_contains_published_content_and_excludes_drafts(self):
-        published_category = Category.objects.create(name="Technology")
+        published_category = Category.objects.get(slug="technology")
         empty_category = Category.objects.create(name="Empty")
         author = Author.objects.get(slug="maria-nicholson")
         published = Article.objects.create(

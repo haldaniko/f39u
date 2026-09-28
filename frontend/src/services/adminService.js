@@ -49,3 +49,41 @@ export async function updateAdminArticle(id, payload) {
 export async function deleteAdminArticle(id) {
   await apiClient.delete(`/admin/articles/${id}/`);
 }
+
+export async function fetchAdminEditors(params = {}) {
+  const { data } = await apiClient.get("/admin/authors/", { params });
+  return data;
+}
+
+export async function fetchAdminEditor(id) {
+  const { data } = await apiClient.get(`/admin/authors/${id}/`);
+  return data;
+}
+
+export async function createAdminEditor(payload) {
+  const { data } = await apiClient.post("/admin/authors/", payload);
+  return data;
+}
+
+export async function updateAdminEditor(id, payload) {
+  const { data } = await apiClient.patch(`/admin/authors/${id}/`, payload);
+  return data;
+}
+
+export async function deleteAdminEditor(id) {
+  await apiClient.delete(`/admin/authors/${id}/`);
+}
+
+export async function fetchAdminSubscribers(params = {}) {
+  const { data } = await apiClient.get("/admin/subscribers/", { params });
+  return data;
+}
+
+export async function updateAdminSubscriber(id, payload) {
+  const { data } = await apiClient.patch(`/admin/subscribers/${id}/`, payload);
+  return data;
+}
+
+export async function deleteAdminSubscriber(id) {
+  await apiClient.delete(`/admin/subscribers/${id}/`);
+}

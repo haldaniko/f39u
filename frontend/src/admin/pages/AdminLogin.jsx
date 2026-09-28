@@ -25,13 +25,13 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 px-4 py-12 font-ui text-white grid place-items-center">
+    <div className="grid min-h-screen place-items-center bg-[#1d282d] px-4 py-12 font-ui text-white">
       <div className="w-full max-w-md">
-        <a href="/" className="inline-block text-sm text-teal-300">FXLFM / Back to site</a>
-        <div className="mt-5 rounded-3xl border border-white/10 bg-white/[0.06] p-7 shadow-2xl sm:p-9">
-          <p className="text-xs uppercase tracking-[0.28em] text-teal-300">Newsroom access</p>
-          <h1 className="mt-3 text-3xl font-semibold">Welcome back</h1>
-          <p className="mt-2 text-sm text-slate-400">Sign in with a Django staff account.</p>
+        <a href="/" className="inline-block font-display text-2xl font-bold text-white">FXLFM</a>
+        <div className="mt-5 rounded-[10px] border border-[#455159] bg-[#243136] p-7 shadow-2xl sm:p-9">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#f4ae35]">Editorial desk</p>
+          <h1 className="mt-3 font-display text-3xl font-bold">Newsroom sign in</h1>
+          <p className="mt-2 text-sm text-slate-400">Use your FXLFM staff account.</p>
           <form onSubmit={handleSubmit} className="mt-8 space-y-5">
             <label className="block text-sm">
               <span className="text-slate-300">Username</span>
@@ -40,7 +40,7 @@ export default function AdminLogin() {
                 autoComplete="username"
                 value={form.username}
                 onChange={(event) => setForm({ ...form, username: event.target.value })}
-                className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-teal-400"
+                className="mt-2 w-full rounded-lg border border-[#606a70] bg-[#1d282d] px-4 py-3 outline-none focus:border-[#f4ae35] focus:ring-2 focus:ring-[#f4ae35]/20"
                 required
               />
             </label>
@@ -51,7 +51,7 @@ export default function AdminLogin() {
                 autoComplete="current-password"
                 value={form.password}
                 onChange={(event) => setForm({ ...form, password: event.target.value })}
-                className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-teal-400"
+                className="mt-2 w-full rounded-lg border border-[#606a70] bg-[#1d282d] px-4 py-3 outline-none focus:border-[#f4ae35] focus:ring-2 focus:ring-[#f4ae35]/20"
                 required
               />
             </label>
@@ -59,7 +59,7 @@ export default function AdminLogin() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full rounded-xl bg-teal-400 px-4 py-3 font-semibold text-slate-950 hover:bg-teal-300 disabled:opacity-60"
+              className="w-full rounded-lg bg-[#f4ae35] px-4 py-3 font-bold text-[#172126] hover:bg-[#ffd075] disabled:opacity-60"
             >
               {isSubmitting ? "Signing in..." : "Sign in"}
             </button>

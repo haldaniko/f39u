@@ -6,6 +6,7 @@ import {
   CategoryStrip,
   NewsletterBand,
   StoryCard,
+  getArticleCategories,
 } from "../components/DesignPrimitives";
 import PageSkeleton from "../components/PageSkeleton";
 import Seo, { withBrand } from "../components/Seo";
@@ -19,7 +20,7 @@ function fillStories(items) {
 
 export default function CategoryPage() {
   const { slug } = useParams();
-  const newsQuery = useInfiniteNews();
+  const newsQuery = useInfiniteNews({ category: slug });
   const categoriesQuery = useCategories();
   const all = newsQuery.data?.pages.flatMap((page) => page.results || []) || [];
   const categories = Array.isArray(categoriesQuery.data)
@@ -30,7 +31,7 @@ export default function CategoryPage() {
   const description = category?.description || `Latest ${categoryName} news, stories and developments curated by FXLFM.`;
 
   const filtered = useMemo(
-    () => all.filter((article) => article.category?.slug === slug || article.category?.name?.toLowerCase() === slug),
+    () => all.filter((article) => getArticleCategories(article).some((item) => item.slug === slug || item.name?.toLowerCase() === slug)),
     [all, slug]
   );
   const stories = fillStories(filtered);

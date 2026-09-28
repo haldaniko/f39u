@@ -7,9 +7,10 @@ from django.db.models import Case, Count, IntegerField, Q, Value, When
 from django.utils import timezone
 from django.utils.text import slugify
 
+from .categories import CANONICAL_CATEGORIES, CANONICAL_CATEGORY_SLUGS, CATEGORY_ALIASES, normalize_category_name
 from .models import Article, Author, Category, Tag
 from .providers import get_providers
-from .repositories import ArticleRepository, CATEGORY_ALIASES
+from .repositories import ArticleRepository
 
 
 DEMO_ARTICLES = [
@@ -29,7 +30,7 @@ DEMO_ARTICLES = [
     },
     {
         "title": "Art Basel brings fun back to the fair with the element of surprise",
-        "category": "Art",
+        "category": "Culture",
         "summary": "Collectors and curators say playful installations and unexpected collaborations are giving the fair a more open energy this season.",
         "image_url": "https://images.unsplash.com/photo-1545987796-200677ee1011?auto=format&fit=crop&w=1600&q=85",
         "tags": ["Culture", "Art"],
@@ -43,7 +44,7 @@ DEMO_ARTICLES = [
     },
     {
         "title": "Startups turn to practical AI tools after a year of experimentation",
-        "category": "Startups",
+        "category": "Business",
         "summary": "Founders are focusing on workflow automation, support tooling and data cleanup as investors ask for clearer customer value.",
         "image_url": "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1600&q=85",
         "tags": ["AI", "Startups"],
@@ -99,14 +100,14 @@ DEMO_ARTICLES = [
     },
     {
         "title": "Women-led funds gain visibility as founders seek wider investor networks",
-        "category": "Feminism",
+        "category": "Society",
         "summary": "A growing group of funds is backing overlooked founders while pushing the industry to measure access more transparently.",
         "image_url": "https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=1600&q=85",
         "tags": ["Funding", "Feminism"],
     },
     {
         "title": "Museums rethink membership programs for younger visitors",
-        "category": "Art",
+        "category": "Culture",
         "summary": "Institutions are adding flexible passes, evening events and digital benefits to build stronger relationships with new audiences.",
         "image_url": "https://images.unsplash.com/photo-1564399579883-451a5d44ec08?auto=format&fit=crop&w=1600&q=85",
         "tags": ["Museums", "Art"],
@@ -126,6 +127,12 @@ class NewsIngestionService:
 class NewsQueryService:
     @staticmethod
     def normalize_category_aliases() -> None:
+        for item in CANONICAL_CATEGORIES:
+            Category.objects.update_or_create(
+                slug=slugify(item["name"]),
+                defaults={"name": item["name"], "description": item["description"]},
+            )
+
         for alias, target_name in CATEGORY_ALIASES.items():
             target_slug = slugify(target_name)
             alias_slug = slugify(alias)
@@ -153,7 +160,25 @@ class NewsQueryService:
                 if category.pk == target.pk:
                     continue
                 Article.objects.filter(category=category).update(category=target)
+                for article in category.categorized_articles.all():
+                    article.categories.add(target)
                 category.delete()
+
+        world = Category.objects.get(slug="world")
+        for category in Category.objects.exclude(slug__in=CANONICAL_CATEGORY_SLUGS):
+            target_name = normalize_category_name(category.name)
+            target = Category.objects.get(slug=slugify(target_name))
+            Article.objects.filter(category=category).update(category=target)
+            for article in category.categorized_articles.all():
+                article.categories.add(target)
+            category.delete()
+
+        for article in Article.objects.filter(category__isnull=False, categories__isnull=True):
+            article.categories.add(article.category)
+
+        Article.objects.filter(category__isnull=True, categories__isnull=True).update(category=world)
+        for article in Article.objects.filter(category=world, categories__isnull=True):
+            article.categories.add(world)
 
     @staticmethod
     def ensure_demo_content() -> int:
@@ -197,6 +222,7 @@ class NewsQueryService:
                     "published_at": now - timedelta(hours=index * 3),
                 },
             )
+            article.categories.add(category)
             if was_created:
                 created += 1
 
@@ -218,12 +244,12 @@ class NewsQueryService:
     @staticmethod
     def popular_categories(limit: int = 6) -> list[dict[str, int | str]]:
         data = (
-            ArticleRepository.published()
-            .values("category__name")
-            .annotate(total=Count("id"))
+            Category.objects.filter(categorized_articles__status=Article.Status.PUBLISHED)
+            .values("name")
+            .annotate(total=Count("categorized_articles", distinct=True))
             .order_by("-total")[:limit]
         )
-        return [{"name": item["category__name"] or "General", "total": item["total"]} for item in data]
+        return [{"name": item["name"] or "World", "total": item["total"]} for item in data]
 
     @staticmethod
     def related(article: Article, limit: int = 4):
@@ -243,13 +269,15 @@ class NewsQueryService:
 
         queryset = queryset.annotate(
             category_match=Case(
-                When(category_id=article.category_id, then=Value(1)),
+                When(Q(category_id=article.category_id) | Q(categories__id__in=list(article.categories.values_list("id", flat=True))), then=Value(1)),
                 default=Value(0),
                 output_field=IntegerField(),
             )
         )
         return (
             queryset.select_related("category")
+            .prefetch_related("categories")
+            .distinct()
             .order_by("-matching_tags", "-category_match", "-published_at", "-created_at")[:limit]
         )
 

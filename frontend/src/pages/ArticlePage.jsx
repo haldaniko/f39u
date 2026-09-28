@@ -5,6 +5,7 @@ import {
   NewsletterBand,
   ShareLinks,
   StoryCard,
+  getArticleCategories,
 } from "../components/DesignPrimitives";
 import PageSkeleton from "../components/PageSkeleton";
 import Seo, { absoluteUrl, withBrand } from "../components/Seo";
@@ -54,8 +55,11 @@ export default function ArticlePage() {
   const authorSocialUrls = author
     ? [author.x_url, author.linkedin_url, author.instagram_url].filter(Boolean)
     : [];
-  const category = article.category?.name || "News";
-  const categoryHref = article.category?.slug ? `/category/${article.category.slug}` : "/search";
+  const articleCategories = getArticleCategories(article);
+  const primaryCategory = articleCategories[0];
+  const category = primaryCategory?.name || "News";
+  const categoryHref = primaryCategory?.slug ? `/category/${primaryCategory.slug}` : "/search";
+  const categoryNames = articleCategories.map((item) => item.name).filter(Boolean);
   const body = article.rewritten_content || article.summary || "";
   const paragraphs = body.split("\n").filter(Boolean);
   const newsArticleSchema = {
@@ -87,7 +91,7 @@ export default function ArticlePage() {
       url: absoluteUrl("/"),
     },
     ...(article.image_url ? { image: [absoluteUrl(article.image_url)] } : {}),
-    ...(article.category?.name ? { articleSection: article.category.name } : {}),
+    ...(categoryNames.length ? { articleSection: categoryNames.join(", ") } : {}),
     ...((article.tags || []).length
       ? { keywords: article.tags.map((tag) => tag.name).join(", ") }
       : {}),
@@ -137,12 +141,12 @@ export default function ArticlePage() {
           </div>
           <div className="flex gap-8 font-ui text-sm font-bold uppercase text-slate-500 dark:text-slate-400">
             <span>{formatDate(publicationDate)}</span>
-            <span className="text-amber-500">⌁ {category}</span>
+            <span className="text-amber-500">⌁ {categoryNames.join(", ") || category}</span>
             <span>{estimateReadingTime(body)}</span>
           </div>
         </div>
 
-        <div className="mt-8 h-[330px] overflow-hidden">
+        <div className="mt-8 h-[420px] overflow-hidden">
           {article.image_url && (
             <img
               src={article.image_url}

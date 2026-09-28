@@ -18,3 +18,4 @@ dist/
 
 # Docker volumes
 postgres_data/
+backend/media/

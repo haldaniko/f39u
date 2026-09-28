@@ -1,5 +1,7 @@
 from django.contrib import admin
 from django.contrib.sitemaps.views import sitemap
+from django.conf import settings
+from django.conf.urls.static import static
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
@@ -8,12 +10,15 @@ from apps.news.sitemap_views import robots_txt
 from apps.news.sitemaps import sitemaps
 from apps.news.seo_views import about_page, article_page, author_page, category_page, contact_page, search_page
 from apps.news.views import (
+    AdminAuthorViewSet,
     AdminArticleOptionsView,
     AdminArticleViewSet,
+    AdminNewsletterSubscriberViewSet,
     AuthorViewSet,
     CategoryViewSet,
     TagViewSet,
     TrendingView,
+    NewsletterSubscribeView,
     health_view,
     search_view,
 )
@@ -33,6 +38,7 @@ urlpatterns = [
     path("api/tags/", TagViewSet.as_view({"get": "list"}), name="tags-list"),
     path("api/search/", search_view, name="search"),
     path("api/trending/", TrendingView.as_view(), name="trending"),
+    path("api/newsletter/subscribe/", NewsletterSubscribeView.as_view(), name="newsletter-subscribe"),
     path("api/admin/statistics/", AdminStatisticsView.as_view(), name="admin-statistics"),
     path(
         "api/admin/articles/",
@@ -47,6 +53,30 @@ urlpatterns = [
         name="admin-article-detail",
     ),
     path("api/admin/options/", AdminArticleOptionsView.as_view(), name="admin-options"),
+    path(
+        "api/admin/authors/",
+        AdminAuthorViewSet.as_view({"get": "list", "post": "create"}),
+        name="admin-authors",
+    ),
+    path(
+        "api/admin/authors/<int:pk>/",
+        AdminAuthorViewSet.as_view(
+            {"get": "retrieve", "put": "update", "patch": "partial_update", "delete": "destroy"}
+        ),
+        name="admin-author-detail",
+    ),
+    path(
+        "api/admin/subscribers/",
+        AdminNewsletterSubscriberViewSet.as_view({"get": "list"}),
+        name="admin-subscribers",
+    ),
+    path(
+        "api/admin/subscribers/<int:pk>/",
+        AdminNewsletterSubscriberViewSet.as_view(
+            {"get": "retrieve", "patch": "partial_update", "delete": "destroy"}
+        ),
+        name="admin-subscriber-detail",
+    ),
     path("api/ai/", include("apps.ai.urls")),
     path("api/auth/", include("apps.users.urls")),
     path("api/analytics/", include("apps.analytics.urls")),
@@ -63,3 +93,6 @@ urlpatterns = [
     path("search", search_page, name="search-page"),
     path("search/", search_page),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

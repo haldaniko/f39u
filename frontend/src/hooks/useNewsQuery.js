@@ -2,10 +2,10 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 
 import { fetchArticle, fetchAuthor, fetchCategories, fetchNews, fetchRelatedStories, fetchTrending, searchNews } from "../services/newsService";
 
-export function useInfiniteNews() {
+export function useInfiniteNews({ category } = {}) {
   return useInfiniteQuery({
-    queryKey: ["news", "infinite"],
-    queryFn: ({ pageParam }) => fetchNews({ pageParam }),
+    queryKey: ["news", "infinite", category || "all"],
+    queryFn: ({ pageParam }) => fetchNews({ pageParam, category }),
     initialPageParam: 1,
     getNextPageParam: (lastPage, pages) => {
       if (!lastPage?.next) {

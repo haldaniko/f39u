@@ -20,6 +20,28 @@ function pickStories(articles, trending) {
   return Array.from({ length: 14 }, (_, index) => pool[index % pool.length]);
 }
 
+function uniqueBySlug(items) {
+  const seen = new Set();
+  return items.filter((item) => {
+    const key = item?.slug || item?.title;
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function buildLatestFeed(articles, trending) {
+  const loadedArticles = uniqueBySlug(articles.slice(1));
+  if (loadedArticles.length >= 12) return loadedArticles;
+  return uniqueBySlug([...loadedArticles, ...trending]).slice(0, 12);
+}
+
+function splitIntoColumns(items, columnCount = 3) {
+  return Array.from({ length: columnCount }, (_, columnIndex) =>
+    items.filter((_, itemIndex) => itemIndex % columnCount === columnIndex)
+  );
+}
+
 export default function HomePage() {
   const newsQuery = useInfiniteNews();
   const trendingQuery = useTrending();
@@ -37,6 +59,7 @@ export default function HomePage() {
   const heroHref = hero?.slug ? `/article/${hero.slug}` : "/search";
   const heroReadTime = estimateReadingTime(hero?.rewritten_content || hero?.summary || hero?.title || "");
   const stories = pickStories(articles.slice(1), trending);
+  const latestFeedColumns = splitIntoColumns(buildLatestFeed(articles, trending));
   const editor = authorQuery.data && typeof authorQuery.data === "object" ? authorQuery.data : null;
 
   const seo = (
@@ -155,29 +178,22 @@ export default function HomePage() {
         <section>
           <h2 className="text-center font-ui text-sm font-bold uppercase tracking-wide">Latest feed</h2>
           <div className="mt-8 grid gap-8 lg:grid-cols-3">
-            <div className="space-y-4">
-              <StoryCard article={stories[7]} />
-              <StoryCard article={stories[8]} variant="line" />
-              <StoryCard article={stories[9]} variant="line" />
-              <StoryCard article={stories[10]} variant="line" />
-            </div>
-            <div className="space-y-4">
-              <StoryCard article={stories[11]} />
-              <StoryCard article={stories[12]} variant="line" />
-              <StoryCard article={stories[13]} variant="line" />
-              <StoryCard article={stories[2]} variant="line" />
-            </div>
-            <div className="space-y-4">
-              <StoryCard article={stories[3]} variant="line" />
-              <StoryCard article={stories[4]} variant="line" />
-              <StoryCard article={stories[5]} variant="line" />
-              <StoryCard article={stories[6]} />
-            </div>
+            {latestFeedColumns.map((column, columnIndex) => (
+              <div key={columnIndex} className="space-y-4">
+                {column.map((article, itemIndex) => (
+                  <StoryCard
+                    key={article.slug || `${columnIndex}-${itemIndex}`}
+                    article={article}
+                    variant={itemIndex % 4 === 0 ? "default" : "line"}
+                  />
+                ))}
+              </div>
+            ))}
           </div>
           {newsQuery.hasNextPage && (
             <div className="mt-8 text-center">
-              <button type="button" onClick={() => newsQuery.fetchNextPage()} className="font-ui text-sm font-bold text-slate-400">
-                Load More ◢
+              <button type="button" onClick={() => newsQuery.fetchNextPage()} disabled={newsQuery.isFetchingNextPage} className="font-ui text-sm font-bold text-slate-400 disabled:opacity-60">
+                {newsQuery.isFetchingNextPage ? "Loading..." : "Load More ◢"}
               </button>
             </div>
           )}

@@ -9,6 +9,9 @@ const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const AdminArticleList = lazy(() => import("./pages/AdminArticleList"));
 const AdminArticleEditor = lazy(() => import("./pages/AdminArticleEditor"));
 const AdminArticleView = lazy(() => import("./pages/AdminArticleView"));
+const AdminEditorList = lazy(() => import("./pages/AdminEditorList"));
+const AdminEditorEditor = lazy(() => import("./pages/AdminEditorEditor"));
+const AdminSubscriberList = lazy(() => import("./pages/AdminSubscriberList"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 
 function ProtectedAdmin() {
@@ -29,6 +32,10 @@ function AdminRoutes() {
           <Route path="articles/new" element={<AdminArticleEditor />} />
           <Route path="articles/:id" element={<AdminArticleView />} />
           <Route path="articles/:id/edit" element={<AdminArticleEditor />} />
+          <Route path="editors" element={<AdminEditorList />} />
+          <Route path="editors/new" element={<AdminEditorEditor />} />
+          <Route path="editors/:id/edit" element={<AdminEditorEditor />} />
+          <Route path="subscribers" element={<AdminSubscriberList />} />
         </Route>
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>

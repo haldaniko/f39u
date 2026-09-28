@@ -155,7 +155,7 @@ def article_page(request: HttpRequest, slug: str) -> HttpResponse:
     queryset = (
         Article.objects.filter(status=Article.Status.PUBLISHED)
         .select_related("category", "author")
-        .prefetch_related("tags")
+        .prefetch_related("categories", "tags")
     )
     article = queryset.filter(slug=slug).first()
     if article is None:
@@ -212,8 +212,11 @@ def article_page(request: HttpRequest, slug: str) -> HttpResponse:
     }
     if article.image_url:
         structured_data["image"] = [_absolute_url(article.image_url)]
-    if article.category:
-        structured_data["articleSection"] = article.category.name
+    category_names = [category.name for category in article.categories.all()]
+    if not category_names and article.category:
+        category_names = [article.category.name]
+    if category_names:
+        structured_data["articleSection"] = ", ".join(category_names)
     keywords = [tag.name for tag in article.tags.all()]
     if keywords:
         structured_data["keywords"] = ", ".join(keywords)
@@ -255,6 +258,7 @@ def author_page(request: HttpRequest, slug: str) -> HttpResponse:
     articles = list(
         author.articles.filter(status=Article.Status.PUBLISHED)
         .select_related("category")
+        .prefetch_related("categories")
         .order_by("-published_at", "-created_at")[:50]
     )
     author_url = _absolute_url(f"/author/{author.slug}")
@@ -271,8 +275,9 @@ def author_page(request: HttpRequest, slug: str) -> HttpResponse:
         "jobTitle": author.job_title,
         "description": _clean_text(author.bio),
     }
-    if author.photo_url:
-        person_schema["image"] = _absolute_url(author.photo_url)
+    author_photo_url = author.display_photo_url
+    if author_photo_url:
+        person_schema["image"] = _absolute_url(author_photo_url)
     if author.location:
         person_schema["homeLocation"] = {
             "@type": "Place",
@@ -285,6 +290,7 @@ def author_page(request: HttpRequest, slug: str) -> HttpResponse:
         "news/author_ssr.html",
         {
             "author": author,
+            "author_photo_url": author_photo_url,
             "articles": articles,
             "current_year": timezone.now().year,
         },
@@ -294,7 +300,7 @@ def author_page(request: HttpRequest, slug: str) -> HttpResponse:
             title=f"{author.name}, {author.job_title}",
             description=author.bio,
             path=f"/author/{author.slug}",
-            image=author.photo_url,
+            image=author_photo_url,
             structured_data=person_schema,
         ),
         root_html=root_html,

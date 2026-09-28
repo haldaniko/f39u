@@ -1,7 +1,7 @@
 import { apiClient } from "../api/client";
 
-export async function fetchNews({ pageParam = 1 }) {
-  const { data } = await apiClient.get("/news/", { params: { page: pageParam } });
+export async function fetchNews({ pageParam = 1, category } = {}) {
+  const { data } = await apiClient.get("/news/", { params: { page: pageParam, category } });
   if (Array.isArray(data)) {
     return { results: data, next: null };
   }

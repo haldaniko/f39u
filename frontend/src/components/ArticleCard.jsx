@@ -1,10 +1,12 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 
+import { getArticleCategories } from "./DesignPrimitives";
 import { estimateReadingTime, formatDate } from "../utils/formatters";
 
 export default function ArticleCard({ article, index = 0 }) {
   const readTime = estimateReadingTime(article.rewritten_content || article.summary || article.title);
+  const categoryName = getArticleCategories(article)[0]?.name;
 
   return (
     <motion.article
@@ -27,7 +29,7 @@ export default function ArticleCard({ article, index = 0 }) {
       </Link>
       <div className="p-4">
         <p className="font-ui text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
-          {article.source_name || article.category?.name || "FXLFM"}
+          {article.source_name || categoryName || "FXLFM"}
         </p>
         <Link to={`/article/${article.slug}`} className="mt-2 block font-body text-xl font-semibold leading-tight hover:text-accent-700">
           {article.title}

@@ -5,17 +5,9 @@ from dataclasses import dataclass
 from django.db.models import QuerySet
 from django.utils.text import slugify
 
+from .categories import CATEGORY_ALIASES, normalize_category_name
 from .models import Article, Author, Category, Source, Tag
 from .slug_utils import unique_article_slug
-
-
-CATEGORY_ALIASES = {
-    "agriculture & foodtech": "Agriculture",
-    "agriculture and foodtech": "Agriculture",
-    "biotech & health": "Health",
-    "biotech and health": "Health",
-    "artificial intelligence": "AI",
-}
 
 
 @dataclass
@@ -32,10 +24,7 @@ class NormalizedArticle:
 class ArticleRepository:
     @staticmethod
     def _normalize_category_name(name: str) -> str:
-        value = str(name or "").strip() or "General"
-        if value.lower() == "rss":
-            return "General"
-        return CATEGORY_ALIASES.get(value.lower(), value)
+        return normalize_category_name(name)
 
     @staticmethod
     def _build_summary(content: str, title: str) -> str:
@@ -155,6 +144,8 @@ class ArticleRepository:
                     defaults={"name": normalized_name},
                 )
                 article.tags.add(tag)
+        if created or not article.categories.exists():
+            article.categories.add(category)
         return article, (created or bool(updated_fields))
 
 

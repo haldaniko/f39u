@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from urllib.parse import urlparse
 
 from django.contrib.sitemaps import Sitemap
+from django.db.models import Q
 
 from .models import Article, Author, Category
 
@@ -47,7 +48,10 @@ class CategorySitemap(CanonicalSitemap):
 
     def items(self):
         return (
-            Category.objects.filter(articles__status=Article.Status.PUBLISHED)
+            Category.objects.filter(
+                Q(categorized_articles__status=Article.Status.PUBLISHED)
+                | Q(articles__status=Article.Status.PUBLISHED)
+            )
             .distinct()
             .order_by("slug")
         )

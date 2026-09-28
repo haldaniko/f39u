@@ -7,15 +7,15 @@ const styles = {
 };
 
 const labels = {
-  published: "Опубликовано",
-  pending_review: "На проверке",
-  rejected: "Отклонено",
-  rewritten: "Переписано",
-  draft: "Черновик",
+  published: "Published",
+  pending_review: "Pending review",
+  rejected: "Rejected",
+  rewritten: "Rewritten",
+  draft: "Draft",
 };
 
 export function formatStatus(status) {
-  return labels[status] || "Неизвестно";
+  return labels[status] || "Unknown";
 }
 
 export default function StatusBadge({ status }) {
