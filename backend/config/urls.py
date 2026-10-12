@@ -6,6 +6,14 @@ from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
 from apps.analytics.views import AdminStatisticsView
+from apps.news.bot_integration import (
+    BotArticleDetailView,
+    BotArticleImageView,
+    BotArticlePublishView,
+    BotArticlesView,
+    BotOptionsView,
+    bot_article_image,
+)
 from apps.news.sitemap_views import robots_txt
 from apps.news.sitemaps import sitemaps
 from apps.news.seo_views import about_page, article_page, author_page, category_page, contact_page, search_page
@@ -24,6 +32,12 @@ from apps.news.views import (
 )
 
 urlpatterns = [
+    path("api/bot/v1/options/", BotOptionsView.as_view(), name="bot-options"),
+    path("api/bot/v1/articles/", BotArticlesView.as_view(), name="bot-articles"),
+    path("api/bot/v1/articles/<uuid:external_id>/", BotArticleDetailView.as_view(), name="bot-article-detail"),
+    path("api/bot/v1/articles/<uuid:external_id>/image/", BotArticleImageView.as_view(), name="bot-article-image"),
+    path("api/bot/v1/articles/<uuid:external_id>/publish/", BotArticlePublishView.as_view(), name="bot-article-publish"),
+    path("api/article-images/<uuid:external_id>/", bot_article_image, name="bot-public-image"),
     path("sitemap.xml", sitemap, {"sitemaps": sitemaps}, name="sitemap"),
     path("robots.txt", robots_txt, name="robots-txt"),
     path("api/health/", health_view, name="health"),

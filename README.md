@@ -57,6 +57,15 @@ Production-oriented full-stack news portal with automated aggregation, AI rewrit
 - Staff-only article CRUD API: `/api/admin/articles/`
 - The original Django admin remains available at `/django-admin/` for system maintenance.
 
+## Telegram Bot Publishing Integration
+
+- The separate bot project instructions and API contract are in [`TELEGRAM_BOT_PROMPT.txt`](TELEGRAM_BOT_PROMPT.txt).
+- Set `BOT_INTEGRATION_TOKEN` to a long random secret and set `SITE_URL` to the public site origin. The API stays disabled when the token is empty.
+- The bot uses `Authorization: Bearer <BOT_INTEGRATION_TOKEN>` for `/api/bot/v1/` routes. It does not need an admin JWT.
+- Publication is a three-step flow: create an idempotent draft with `POST /api/bot/v1/articles/`, optionally upload an image with `PUT /api/bot/v1/articles/<external_id>/image/`, then publish with `POST /api/bot/v1/articles/<external_id>/publish/`.
+- `GET /api/bot/v1/options/` provides category and author slugs. `GET /api/bot/v1/articles/<external_id>/` supports retry recovery.
+- Uploaded article images are served publicly from `/api/article-images/<external_id>/` after publication. In production, the persistent `media_volume` must be preserved across backend deployments.
+
 ## Scheduled Jobs (Celery)
 
 - Every 15 min: `fetch_latest_news_task`

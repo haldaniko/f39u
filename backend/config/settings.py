@@ -92,6 +92,8 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+SITE_URL = os.getenv("SITE_URL", "https://fxlfm.com").rstrip("/")
+BOT_INTEGRATION_TOKEN = os.getenv("BOT_INTEGRATION_TOKEN", "")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

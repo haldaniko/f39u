@@ -124,6 +124,9 @@ class Article(models.Model):
     published_at = models.DateTimeField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
     image_url = models.URLField(max_length=500, blank=True)
+    bot_image = models.FileField(upload_to="article_images/", blank=True)
+    integration_id = models.UUIDField(unique=True, null=True, blank=True, editable=False)
+    integration_payload_hash = models.CharField(max_length=64, blank=True, editable=False)
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name="articles")
     categories = models.ManyToManyField(Category, blank=True, related_name="categorized_articles")
     author = models.ForeignKey(
